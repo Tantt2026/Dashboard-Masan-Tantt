@@ -714,7 +714,7 @@ def build_summary_report(df, report_date, df_combo_off_raw, df_combo_on_raw, cat
     # MBS Cat
     cat_filtered = cat_df.copy()
     if not cat_filtered.empty and f_thu_list:
-        c_thu_cat = find_col(cat_filtered, ['Thứ'])
+        c_thu_cat = find_col(cat_filtered, ['Thứ', 'Frequency', 'Tần suất', 'thu'])
         cat_filtered = filter_by_thu_multi(cat_filtered, c_thu_cat, f_thu_list)
 
     cat_target_map, cat_actual_map, cat_ctds_map, cat_mtd_map = {}, {}, {}, {}
@@ -743,7 +743,7 @@ def build_summary_report(df, report_date, df_combo_off_raw, df_combo_on_raw, cat
     # MBS Brand
     brand_filtered = brand_df.copy()
     if not brand_filtered.empty and f_thu_list:
-        c_thu_brand = find_col(brand_filtered, ['Thứ'])
+        c_thu_brand = find_col(brand_filtered, ['Thứ', 'Frequency', 'Tần suất', 'thu'])
         brand_filtered = filter_by_thu_multi(brand_filtered, c_thu_brand, f_thu_list)
 
     brand_target_map, brand_actual_map, brand_ctds_map, brand_mtd_map = {}, {}, {}, {}
