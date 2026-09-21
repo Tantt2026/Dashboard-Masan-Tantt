@@ -1010,7 +1010,11 @@ def render_html_table(df):
     
     html.append('<tbody>')
     for _, row in df.iterrows():
-        is_total = str(row.get('Tên NVBH', '')).strip() == 'TỔNG CỘNG' or str(row.get('Tên NV', '')).strip() == 'TỔNG CỘNG'
+        is_total = (
+            str(row.get('Mã NVBH', '')).strip() == 'TỔNG CỘNG' or 
+            str(row.get('Tên NVBH', '')).strip() == 'TỔNG CỘNG' or 
+            str(row.get('Tên NV', '')).strip() == 'TỔNG CỘNG'
+        )
         html.append('<tr>')
         for col in df.columns:
             val = row[col]
@@ -1067,7 +1071,6 @@ with st.spinner("Đang tải dữ liệu..."):
 
 nv_list = sorted(df['Tên NVBH'].dropna().unique().tolist())
 
-# Tự động tính ngày T - 1
 default_date_t_minus_1 = date.today() - timedelta(days=1)
 
 f1, f2, f3 = st.columns([1, 1, 1.3])
