@@ -518,24 +518,31 @@ def build_report(df, report_date, targets, report_type, filter_nv=None):
 
 def build_turnover_report(df, report_date, turnover_targets, filter_nv=None):
     df_mtd = df[df['date'] >= date(report_date.year, report_date.month, 1)].copy()
+    df_today = df[df['date'] == report_date].copy()
+    
     if filter_nv and filter_nv != "Tất cả ĐDKD":
         df_mtd = df_mtd[df_mtd['Tên NVBH'] == filter_nv]
+        df_today = df_today[df_today['Tên NVBH'] == filter_nv]
         
     sm_names = df_mtd.groupby('Mã NVBH')['Tên NVBH'].first().to_dict()
     all_sms = sorted(sm_names.keys())
     
     val_col = find_col(df_mtd, ['Thành tiền trước CK', 'Thành tiền trước chiết khấu']) or 'Thành tiền trước CK'
+    
     mtd_sales = df_mtd.groupby('Mã NVBH')[val_col].sum().to_dict()
+    today_sales = df_today.groupby('Mã NVBH')[val_col].sum().to_dict()
     
     results = []
     for sm in all_sms:
         tgt = turnover_targets.get(sm, 0.0)
         m = float(mtd_sales.get(sm, 0.0))
+        t_val = float(today_sales.get(sm, 0.0))
         pct = round(m / tgt * 100, 1) if tgt else 0.0
         results.append({
             'Mã NVBH': sm, 
             'Tên NVBH': sm_names.get(sm, ''), 
             'Chỉ Tiêu Doanh Số': tgt, 
+            'Thực Hiện Ngày': t_val,
             'Doanh Số MTD': m, 
             '% MTD': f"{pct}%", 
             '_ratio': (m / tgt if tgt else 0)
@@ -545,6 +552,7 @@ def build_turnover_report(df, report_date, turnover_targets, filter_nv=None):
     df_out.insert(0, 'STT', range(1, len(df_out) + 1))
     
     total_mtd = float(df_out['Doanh Số MTD'].sum()) if not df_out.empty else 0.0
+    total_today = float(df_out['Thực Hiện Ngày'].sum()) if not df_out.empty else 0.0
     team_tgt = float(df_out['Chỉ Tiêu Doanh Số'].sum()) if not df_out.empty else 0.0
     total_pct = round(total_mtd / team_tgt * 100, 1) if team_tgt else 0.0
     
@@ -553,6 +561,7 @@ def build_turnover_report(df, report_date, turnover_targets, filter_nv=None):
         'Mã NVBH': 'TỔNG CỘNG',
         'Tên NVBH': 'SS Trương Thanh Tân Total' if filter_nv == "Tất cả ĐDKD" else filter_nv,
         'Chỉ Tiêu Doanh Số': team_tgt,
+        'Thực Hiện Ngày': total_today,
         'Doanh Số MTD': total_mtd,
         '% MTD': f"{total_pct}%"
     }])
@@ -973,12 +982,12 @@ def render_summary_html_table(df, selected_metrics):
             
             if is_total:
                 if col in ['CT DS (Cat)', 'MTD (Cat)', 'CT DS (Brand)', 'MTD (Brand)']:
-                    html.append(f'<td style="background-color: #ffffff; color: #9b2c2c; font-weight: bold; text-align: right; white-space: nowrap;">{val}</td>')
+                    html.append(f'<td style="background-color: #fff5f5; color: #c53030 !important; font-weight: 900 !important; text-align: right; white-space: nowrap;">{val}</td>')
                 elif is_pct:
-                    html.append(f'<td style="{style_bg} text-align: center; font-weight: bold;">{val}</td>')
+                    html.append(f'<td style="{style_bg} text-align: center; font-weight: 900 !important; color: #c53030 !important;">{val}</td>')
                 else:
                     align = 'left' if col == 'Tên NV' else 'center'
-                    html.append(f'<td style="background-color: #ffffff; color: #9b2c2c; font-weight: bold; text-align: {align}; white-space: nowrap;">{val}</td>')
+                    html.append(f'<td style="background-color: #fff5f5; color: #c53030 !important; font-weight: 900 !important; text-align: {align}; white-space: nowrap;">{val}</td>')
             else:
                 if col in ['CT DS (Cat)', 'MTD (Cat)', 'CT DS (Brand)', 'MTD (Brand)']:
                     html.append(f'<td style="text-align: right; white-space: nowrap;">{val}</td>')
@@ -1001,7 +1010,7 @@ def render_html_table(df):
     
     html.append('<tbody>')
     for _, row in df.iterrows():
-        is_total = str(row.get('Tên NV', '')).strip() == 'TỔNG CỘNG'
+        is_total = str(row.get('Tên NVBH', '')).strip() == 'TỔNG CỘNG' or str(row.get('Tên NV', '')).strip() == 'TỔNG CỘNG'
         html.append('<tr>')
         for col in df.columns:
             val = row[col]
@@ -1010,18 +1019,17 @@ def render_html_table(df):
             if col in ['% MTD', '% MTD (OFF)', '% MTD (ON)']:
                 style_bg = color_pct_bg(val)
                 if is_total:
-                    html.append(f'<td style="{style_bg} text-align: center; font-weight: bold;">{val}</td>')
+                    html.append(f'<td style="{style_bg} text-align: center; font-weight: 900 !important; color: #c53030 !important;">{val}</td>')
                 else:
                     html.append(f'<td style="{style_bg} text-align: center;">{val}</td>')
             elif is_total:
-                if col == 'Tên NV':
-                    html.append(f'<td style="background-color: #ffffff; color: #9b2c2c; font-weight: bold; text-align: left; white-space: nowrap;">{val}</td>')
-                else:
-                    html.append(f'<td style="background-color: #ffffff; color: #9b2c2c; font-weight: bold; text-align: center; white-space: nowrap;">{val}</td>')
-            elif col == 'Tên NV':
+                align = 'left' if col in ['Tên NVBH', 'Tên NV'] else ('center' if col in ['STT', 'Mã NVBH'] else 'right')
+                html.append(f'<td style="background-color: #fff5f5; color: #c53030 !important; font-weight: 900 !important; text-align: {align}; white-space: nowrap;">{val}</td>')
+            elif col in ['Tên NVBH', 'Tên NV']:
                 html.append(f'<td style="color: #1a365d; text-align: left; white-space: nowrap;">{val}</td>')
             else:
-                align = 'center' if col in ['STT', 'Mã NVBH', 'Thực Hiện Ngày', 'MTD', 'Phát sinh Ngày (OFF)', 'MTD (OFF)', 'Phát sinh Ngày (ON)', 'MTD (ON)', 'Chỉ Tiêu KPI', 'Target (OFF)', 'Target (ON)', 'VIP MCH', 'KH Combo OFF', 'KH Combo ON', 'MBS Cat', 'MBS Brand'] else 'left'
+                align = 'center' if col in ['STT', 'Mã NVBH', 'Thực Hiện Ngày', 'MTD', 'Phát sinh Ngày (OFF)', 'MTD (OFF)', 'Phát sinh Ngày (ON)', 'MTD (ON)', 'Chỉ Tiêu KPI', 'Target (OFF)', 'Target (ON)', 'VIP MCH', 'KH Combo OFF', 'KH Combo ON', 'MBS Cat', 'MBS Brand'] else 'right'
+                if col in ['Chỉ Tiêu Doanh Số', 'Doanh Số MTD', 'Thực Hiện Ngày']: align = 'right'
                 html.append(f'<td style="text-align: {align}; white-space: nowrap;">{val}</td>')
         html.append('</tr>')
     html.append('</tbody>')
@@ -1158,19 +1166,21 @@ with tab_kpi:
         df_r, team_tgt, title = build_turnover_report(df, report_date, turnover_targets, filter_nv)
         total_row = df_r.iloc[-1]
         total_mtd = float(total_row['Doanh Số MTD'])
+        total_today = float(total_row['Thực Hiện Ngày'])
         pct_team = total_row['% MTD']
         
         st.markdown(f'<h3 style="color: #034ea2; font-weight: 800; margin-bottom: 0px; font-size: 15px;">{title} - THÁNG {report_date.strftime("%m/%Y")}</h3>', unsafe_allow_html=True)
         st.caption(f"⚡ Ngày: {report_date.strftime('%d/%m/%Y')} | Lọc: {filter_nv}")
         
-        c1, c2, c3, _ = st.columns(4)
+        c1, c2, c3, c4 = st.columns(4)
         with c1: render_metric_card("🎯 Chỉ Tiêu DS", f"{team_tgt:,.0f}".replace(",", "."))
         with c2: render_metric_card("📈 Doanh Số MTD", f"{total_mtd:,.0f}".replace(",", "."))
         with c3: render_metric_card("📊 % MTD", pct_team)
+        with c4: render_metric_card("🆕 Thực Hiện Ngày", f"{total_today:,.0f}".replace(",", "."))
         
         df_display = df_r.copy()
-        for col in ['Chỉ Tiêu Doanh Số', 'Doanh Số MTD']:
-            df_display[col] = df_display[col].apply(lambda x: f"{x:,.0f}".replace(",", ".") if isinstance(x, (int, float)) and x > 0 else x)
+        for col in ['Chỉ Tiêu Doanh Số', 'Thực Hiện Ngày', 'Doanh Số MTD']:
+            df_display[col] = df_display[col].apply(lambda x: f"{x:,.0f}".replace(",", ".") if isinstance(x, (int, float)) and x > 0 else ("0" if x == 0 else x))
             
         st.markdown(render_html_table(df_display), unsafe_allow_html=True)
         
@@ -1186,7 +1196,7 @@ with tab_kpi:
         st.markdown(f"""
         <div class="note-box">
             <b>NHẬN XÉT ({title} - {report_date.strftime('%d/%m/%Y')}):</b><br>
-            • Tổng Doanh Số MTD: <b>{total_mtd:,.0f} / {team_tgt:,.0f} VNĐ ({pct_team})</b>.<br>
+            • Tổng Doanh Số MTD: <b>{total_mtd:,.0f} / {team_tgt:,.0f} VNĐ ({pct_team})</b> | Thực hiện ngày: <b>{total_today:,.0f} VNĐ</b>.<br>
             • <b>Top 3 ĐDKD dẫn đầu:</b> {top3_text}<br>
             • <b>Top 3 ĐDKD cần đôn đốc:</b> {bottom3_text}
         </div>
