@@ -235,6 +235,25 @@ def get_targets():
         return targets
     except: return {}
 
+@st.cache_data(ttl=600)
+def get_turnover_targets():
+    if not os.path.exists(KPI_PATH): return {}
+    try:
+        kpi = pd.read_excel(KPI_PATH, header=None).iloc[2:]
+        kpi.columns = ['Region','Month','Ship to','Distributor','SUP','SM pos','SM code','SM name',
+                       'Saleteam','KPI type','KPI Name','Target','Thực hiện','% actual','% Contrib','Chưa ra HĐ']
+        kpi = kpi.dropna(subset=['SM code'])
+        kpi['Target'] = pd.to_numeric(kpi['Target'], errors='coerce')
+        targets = {}
+        for _, r in kpi.iterrows():
+            sm, ktype = str(r['SM code']).strip(), str(r['KPI type']).strip().lower()
+            tgt = r['Target']
+            if pd.isna(tgt): continue
+            if ktype == 'turnover':
+                targets[sm] = float(tgt)
+        return targets
+    except: return {}
+
 def color_pct_bg(val):
     try:
         v = float(str(val).replace('%','').strip())
@@ -497,6 +516,48 @@ def build_report(df, report_date, targets, report_type, filter_nv=None):
     }])
     return pd.concat([df_out, total_row], ignore_index=True), team_tgt, title
 
+def build_turnover_report(df, report_date, turnover_targets, filter_nv=None):
+    df_mtd = df[df['date'] >= date(report_date.year, report_date.month, 1)].copy()
+    if filter_nv and filter_nv != "Tất cả ĐDKD":
+        df_mtd = df_mtd[df_mtd['Tên NVBH'] == filter_nv]
+        
+    sm_names = df_mtd.groupby('Mã NVBH')['Tên NVBH'].first().to_dict()
+    all_sms = sorted(sm_names.keys())
+    
+    val_col = find_col(df_mtd, ['Thành tiền trước CK', 'Thành tiền trước chiết khấu']) or 'Thành tiền trước CK'
+    mtd_sales = df_mtd.groupby('Mã NVBH')[val_col].sum().to_dict()
+    
+    results = []
+    for sm in all_sms:
+        tgt = turnover_targets.get(sm, 0.0)
+        m = float(mtd_sales.get(sm, 0.0))
+        pct = round(m / tgt * 100, 1) if tgt else 0.0
+        results.append({
+            'Mã NVBH': sm, 
+            'Tên NVBH': sm_names.get(sm, ''), 
+            'Chỉ Tiêu Doanh Số': tgt, 
+            'Doanh Số MTD': m, 
+            '% MTD': f"{pct}%", 
+            '_ratio': (m / tgt if tgt else 0)
+        })
+        
+    df_out = pd.DataFrame(results).sort_values('_ratio', ascending=True).drop(columns=['_ratio']).reset_index(drop=True)
+    df_out.insert(0, 'STT', range(1, len(df_out) + 1))
+    
+    total_mtd = float(df_out['Doanh Số MTD'].sum()) if not df_out.empty else 0.0
+    team_tgt = float(df_out['Chỉ Tiêu Doanh Số'].sum()) if not df_out.empty else 0.0
+    total_pct = round(total_mtd / team_tgt * 100, 1) if team_tgt else 0.0
+    
+    total_row = pd.DataFrame([{
+        'STT': '-',
+        'Mã NVBH': 'TỔNG CỘNG',
+        'Tên NVBH': 'SS Trương Thanh Tân Total' if filter_nv == "Tất cả ĐDKD" else filter_nv,
+        'Chỉ Tiêu Doanh Số': team_tgt,
+        'Doanh Số MTD': total_mtd,
+        '% MTD': f"{total_pct}%"
+    }])
+    return pd.concat([df_out, total_row], ignore_index=True), team_tgt, "8. BÁO CÁO DOANH SỐ (TURNOVER)"
+
 def build_combo_matrix(df, report_date, df_off_master, df_on_master, filter_nv=None):
     df_mtd = df[df['date'] >= date(report_date.year, report_date.month, 1)].copy()
     if filter_nv and filter_nv != "Tất cả ĐDKD":
@@ -652,7 +713,7 @@ def build_summary_report(df, report_date, df_combo_off_raw, df_combo_on_raw, cat
                 df_vip_sub['DS'] = pd.to_numeric(df_vip_sub[col_ds_mcp], errors='coerce').fillna(0)
                 vip_actual_map = df_vip_sub[df_vip_sub['DS'] > 0].groupby('NV')['MA'].nunique().to_dict()
 
-    # KH Combo OFF & ON (Lọc theo thứ chuẩn xác cho cả target và actual)
+    # KH Combo OFF & ON
     df_mtd = df[df['date'] >= date(report_date.year, report_date.month, 1)].copy()
 
     def is_combo_off(row):
@@ -863,7 +924,6 @@ def render_summary_html_table(df, selected_metrics):
     
     html = ['<div style="overflow-x: auto; -webkit-overflow-scrolling: touch;"><table class="custom-kpi-table">']
     
-    # Header row 1
     html.append('<thead>')
     html.append('<tr>')
     html.append('<th rowspan="2" style="vertical-align: middle;">STT</th>')
@@ -876,7 +936,6 @@ def render_summary_html_table(df, selected_metrics):
     if has_brand: html.append('<th colspan="6" style="background-color: #fff5f5; color: #9b2c2c;">MBS Brand (K VNĐ)</th>')
     html.append('</tr>')
     
-    # Header row 2
     html.append('<tr>')
     sub_headers = []
     if has_vip: sub_headers.extend(['VIP MCH', 'Đã Mua', '% MTD'])
@@ -890,7 +949,6 @@ def render_summary_html_table(df, selected_metrics):
     html.append('</tr>')
     html.append('</thead>')
     
-    # Body
     html.append('<tbody>')
     for _, row in df.iterrows():
         is_total = str(row.get('Tên NV', '')).strip() == 'TỔNG CỘNG'
@@ -990,6 +1048,7 @@ with col_reload:
 with st.spinner("Đang tải dữ liệu..."):
     df, mcp = load_main_data()
     targets = get_targets()
+    turnover_targets = get_turnover_targets()
     df_cat = load_cat_data()
     df_brand = load_brand_data()
     df_combo_off, df_combo_on = load_combo_data()
@@ -1000,7 +1059,7 @@ with st.spinner("Đang tải dữ liệu..."):
 
 nv_list = sorted(df['Tên NVBH'].dropna().unique().tolist())
 
-# Tự động tính ngày T - 1 (hôm qua so với ngày hiện tại của hệ thống)
+# Tự động tính ngày T - 1
 default_date_t_minus_1 = date.today() - timedelta(days=1)
 
 f1, f2, f3 = st.columns([1, 1, 1.3])
@@ -1020,6 +1079,7 @@ with f3:
         "5. ASO ALL KÊNH OFF": "ASO_ALL",
         "6. BÁO CÁO ĐƠN HÀNG COMBO": "COMBO",
         "7. BÁO CÁO TỔNG HỢP THEO NHÂN VIÊN": "SUMMARY",
+        "8. BÁO CÁO DOANH SỐ (TURNOVER)": "TURNOVER",
     }
     selected_name = st.selectbox("", list(kpi_map.keys()), key="kpi", label_visibility="collapsed")
     selected_kpi = kpi_map[selected_name]
@@ -1094,6 +1154,44 @@ with tab_kpi:
         </div>
         """, unsafe_allow_html=True)
         
+    elif selected_kpi == "TURNOVER":
+        df_r, team_tgt, title = build_turnover_report(df, report_date, turnover_targets, filter_nv)
+        total_row = df_r.iloc[-1]
+        total_mtd = float(total_row['Doanh Số MTD'])
+        pct_team = total_row['% MTD']
+        
+        st.markdown(f'<h3 style="color: #034ea2; font-weight: 800; margin-bottom: 0px; font-size: 15px;">{title} - THÁNG {report_date.strftime("%m/%Y")}</h3>', unsafe_allow_html=True)
+        st.caption(f"⚡ Ngày: {report_date.strftime('%d/%m/%Y')} | Lọc: {filter_nv}")
+        
+        c1, c2, c3, _ = st.columns(4)
+        with c1: render_metric_card("🎯 Chỉ Tiêu DS", f"{team_tgt:,.0f}".replace(",", "."))
+        with c2: render_metric_card("📈 Doanh Số MTD", f"{total_mtd:,.0f}".replace(",", "."))
+        with c3: render_metric_card("📊 % MTD", pct_team)
+        
+        df_display = df_r.copy()
+        for col in ['Chỉ Tiêu Doanh Số', 'Doanh Số MTD']:
+            df_display[col] = df_display[col].apply(lambda x: f"{x:,.0f}".replace(",", ".") if isinstance(x, (int, float)) and x > 0 else x)
+            
+        st.markdown(render_html_table(df_display), unsafe_allow_html=True)
+        
+        df_eval = df_r.iloc[:-1].copy()
+        df_eval['_pct_val'] = df_eval['% MTD'].str.replace('%','').astype(float)
+        df_sorted_pct = df_eval.sort_values(by='_pct_val', ascending=False)
+        top3 = df_sorted_pct.head(3)
+        bottom3 = df_sorted_pct.tail(3).iloc[::-1]
+        
+        top3_text = ", ".join([f"{r['Tên NVBH']} ({r['% MTD']})" for _, r in top3.iterrows()])
+        bottom3_text = ", ".join([f"{r['Tên NVBH']} ({r['% MTD']})" for _, r in bottom3.iterrows()])
+        
+        st.markdown(f"""
+        <div class="note-box">
+            <b>NHẬN XÉT ({title} - {report_date.strftime('%d/%m/%Y')}):</b><br>
+            • Tổng Doanh Số MTD: <b>{total_mtd:,.0f} / {team_tgt:,.0f} VNĐ ({pct_team})</b>.<br>
+            • <b>Top 3 ĐDKD dẫn đầu:</b> {top3_text}<br>
+            • <b>Top 3 ĐDKD cần đôn đốc:</b> {bottom3_text}
+        </div>
+        """, unsafe_allow_html=True)
+
     elif selected_kpi != "COMBO":
         df_r, team_tgt, title = build_report(df, report_date, targets, selected_kpi, filter_nv)
         total_row = df_r.iloc[-1]
