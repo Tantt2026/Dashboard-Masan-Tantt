@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from datetime import date, timedelta
 import os
+import datetime as dt
+import pytz
 
 st.set_page_config(
     page_title="TRACKING KPI ĐDKD - SS Trương Thanh Tân",
@@ -1067,8 +1069,10 @@ with st.spinner("Đang tải dữ liệu..."):
 
 nv_list = sorted(df['Tên NVBH'].dropna().unique().tolist())
 
-# Tự động tính ngày T - 1
-default_date_t_minus_1 = date.today() - timedelta(days=1)
+# Tự động tính ngày T - 1 theo múi giờ GMT+7
+tz_vn = pytz.timezone('Asia/Ho_Chi_Minh')
+current_time_vn = dt.datetime.now(tz_vn)
+default_date_t_minus_1 = (current_time_vn - timedelta(days=1)).date()
 
 f1, f2, f3 = st.columns([1, 1, 1.3])
 with f1:
@@ -1091,6 +1095,47 @@ with f3:
     }
     selected_name = st.selectbox("", list(kpi_map.keys()), key="kpi", label_visibility="collapsed")
     selected_kpi = kpi_map[selected_name]
+
+# ====================== TÍNH TOÁN TIMEGONE (GMT+7) ======================
+def get_timegone_stats(target_date):
+    year = target_date.year
+    month = target_date.month
+    first_day = dt.date(year, month, 1)
+    if month == 12:
+        last_day = dt.date(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        last_day = dt.date(year, month + 1, 1) - timedelta(days=1)
+        
+    total_working_days = 0
+    elapsed_working_days = 0
+    
+    curr = first_day
+    while curr <= last_day:
+        is_sunday = (curr.weekday() == 6)
+        if not is_sunday:
+            total_working_days += 1
+            if curr <= target_date:
+                elapsed_working_days += 1
+        curr += timedelta(days=1)
+        
+    remaining_working_days = total_working_days - elapsed_working_days
+    pct_timegone = round(elapsed_working_days / total_working_days * 100, 1) if total_working_days > 0 else 0
+    return total_working_days, elapsed_working_days, remaining_working_days, pct_timegone
+
+tot_days, elapsed_days, remain_days, pct_tg = get_timegone_stats(report_date)
+
+# Hiển thị bảng Timegone ngay trên chính giữa các ô lọc
+st.markdown(f"""
+<div style="background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; margin: 10px 0 15px 0; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+    <div style="font-weight: 800; color: #1a365d; font-size: 13px; margin-bottom: 6px;">⏳ TIẾN ĐỘ THỜI GIAN THÁNG {report_date.strftime('%m/%Y')} (TIMEGONE - GMT+7)</div>
+    <div style="display: flex; justify-content: space-around; font-size: 12px; gap: 10px; flex-wrap: wrap;">
+        <div><b>Tổng ngày làm việc:</b> <span style="color: #2b6cb0; font-size: 14px;">{tot_days}</span> ngày</div>
+        <div><b>Đã trôi qua:</b> <span style="color: #c53030; font-size: 14px;">{elapsed_days}</span> ngày</div>
+        <div><b>Còn lại:</b> <span style="color: #2f855a; font-size: 14px;">{remain_days}</span> ngày</div>
+        <div><b>% Timegone:</b> <span style="background: #c6f6d5; color: #22543d; padding: 2px 6px; border-radius: 4px; font-weight: 700;">{pct_tg}%</span></div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 f4, f5 = st.columns([1, 1])
 with f4:
