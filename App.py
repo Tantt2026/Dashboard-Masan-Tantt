@@ -4,7 +4,6 @@ import numpy as np
 from datetime import date, timedelta
 import os
 import datetime as dt
-import pytz
 
 st.set_page_config(
     page_title="TRACKING KPI ĐDKD - SS Trương Thanh Tân",
@@ -1069,10 +1068,9 @@ with st.spinner("Đang tải dữ liệu..."):
 
 nv_list = sorted(df['Tên NVBH'].dropna().unique().tolist())
 
-# Tự động tính ngày T - 1 theo múi giờ GMT+7
-tz_vn = pytz.timezone('Asia/Ho_Chi_Minh')
-current_time_vn = dt.datetime.now(tz_vn)
-default_date_t_minus_1 = (current_time_vn - timedelta(days=1)).date()
+# Tự động tính ngày T - 1 theo múi giờ GMT+7 chuẩn không cần pytz
+vn_time = dt.datetime.utcnow() + dt.timedelta(hours=7)
+default_date_t_minus_1 = (vn_time - timedelta(days=1)).date()
 
 f1, f2, f3 = st.columns([1, 1, 1.3])
 with f1:
