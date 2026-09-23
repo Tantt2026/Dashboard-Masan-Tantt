@@ -990,18 +990,18 @@ def build_summary_report(df, report_date, df_combo_off_raw, df_combo_on_raw, cat
     return df_out
 
 def render_table_action_bar(table_id="table"):
-    st.markdown(f"""
+    st.markdown("""
     <div class="table-action-bar">
         <button class="table-action-btn" title="Xem / Ẩn cột">👁️ Cột</button>
         <button class="table-action-btn" title="Tải xuống CSV">📥 Tải</button>
         <button class="table-action-btn" title="Tìm kiếm nhanh">🔍 Tìm</button>
         <button class="table-action-btn" title="Mở rộng toàn màn hình" onclick="
-            var el = document.getElementById('{table_id}');
+            var el = document.getElementById('TABLE_ID_PLACEHOLDER');
             if (el.requestFullscreen) { el.requestFullscreen(); }
             else if (el.webkitRequestFullscreen) { el.webkitRequestFullscreen(); }
         ">🔲 Fullscreen</button>
     </div>
-    """, unsafe_allow_html=True)
+    """.replace("TABLE_ID_PLACEHOLDER", table_id), unsafe_allow_html=True)
 
 def render_summary_html_table(df, selected_metrics):
     has_vip = 'VIP MCH' in selected_metrics
