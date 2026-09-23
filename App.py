@@ -120,28 +120,6 @@ st.markdown("""
     
     footer {visibility: hidden;}
     #MainMenu, header {visibility: visible !important;}
-    
-    .custom-kpi-table {
-        width: 100%;
-        border-collapse: collapse;
-        border: 1px solid #e2e8f0 !important;
-        font-family: sans-serif;
-        font-size: 11px;
-        background-color: #ffffff;
-    }
-    .custom-kpi-table th {
-        background-color: #f7fafc !important;
-        color: #9b2c2c !important;
-        font-weight: bold !important;
-        text-align: center !important;
-        border: 1px solid #e2e8f0 !important;
-        padding: 5px 4px;
-        white-space: nowrap;
-    }
-    .custom-kpi-table td {
-        border: 1px solid #e2e8f0 !important;
-        padding: 4px 5px;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -269,14 +247,6 @@ def get_turnover_targets():
                 targets[sm] = float(tgt)
         return targets
     except: return {}
-
-def color_pct_bg(val):
-    try:
-        v = float(str(val).replace('%','').strip())
-        if v >= 70: return 'background-color: #c6f6d5; color:#22543d; font-weight:600;'
-        elif v >= 50: return 'background-color: #fefcbf; color:#744210; font-weight:600;'
-        else: return 'background-color: #fed7d7; color:#742a2a; font-weight:600;'
-    except: return ''
 
 def format_number_vn(x):
     try:
@@ -964,124 +934,12 @@ def build_summary_report(df, report_date, df_combo_off_raw, df_combo_on_raw, cat
         
     return df_out
 
-def render_summary_html_table(df, selected_metrics, height_style=""):
-    has_vip = 'VIP MCH' in selected_metrics
-    has_off = 'KH Combo OFF' in selected_metrics
-    has_on = 'KH Combo ON' in selected_metrics
-    has_cat = 'MBS Cat' in selected_metrics
-    has_brand = 'MBS Brand' in selected_metrics
-    
-    html = [f'<div style="overflow-x: auto; -webkit-overflow-scrolling: touch; {height_style}"><table class="custom-kpi-table">']
-    
-    html.append('<thead>')
-    html.append('<tr>')
-    html.append('<th rowspan="2" style="vertical-align: middle;">STT</th>')
-    html.append('<th rowspan="2" style="vertical-align: middle;">Tên NV</th>')
-    
-    if has_vip: html.append('<th colspan="3" style="background-color: #fffaf0; color: #c05621;">VIP MCH</th>')
-    if has_off: html.append('<th colspan="3" style="background-color: #f0fff4; color: #22543d;">KH Combo OFF</th>')
-    if has_on: html.append('<th colspan="3" style="background-color: #ebf8ff; color: #2b6cb0;">KH Combo ON</th>')
-    if has_cat: html.append('<th colspan="6" style="background-color: #faf5ff; color: #553c9a;">MBS Cat (K VNĐ)</th>')
-    if has_brand: html.append('<th colspan="6" style="background-color: #fff5f5; color: #9b2c2c;">MBS Brand (K VNĐ)</th>')
-    html.append('</tr>')
-    
-    html.append('<tr>')
-    sub_headers = []
-    if has_vip: sub_headers.extend(['VIP MCH', 'Đã Mua', '% MTD'])
-    if has_off: sub_headers.extend(['KH Combo OFF', 'Đã Mua', '% MTD'])
-    if has_on: sub_headers.extend(['KH Combo ON', 'Đã Mua', '% MTD'])
-    if has_cat: sub_headers.extend(['MBS Cat', 'Đã Mua', '% MTD', 'CT DS', 'MTD', '% MTD'])
-    if has_brand: sub_headers.extend(['MBS Brand', 'Đã Mua', '% MTD', 'CT DS', 'MTD', '% MTD'])
-    
-    for sh in sub_headers:
-        html.append(f'<th>{sh}</th>')
-    html.append('</tr>')
-    html.append('</thead>')
-    
-    html.append('<tbody>')
-    for _, row in df.iterrows():
-        is_total = str(row.get('Tên NV', '')).strip() == 'TỔNG CỘNG'
-        html.append('<tr>')
-        
-        cols_order = ['STT', 'Tên NV']
-        if has_vip: cols_order.extend(['VIP MCH', 'Đã Mua (VIP)', '% MTD (VIP)'])
-        if has_off: cols_order.extend(['KH Combo OFF', 'Đã Mua (OFF)', '% MTD (OFF)'])
-        if has_on: cols_order.extend(['KH Combo ON', 'Đã Mua (ON)', '% MTD (ON)'])
-        if has_cat: cols_order.extend(['MBS Cat', 'Đã Mua (Cat)', '% MTD (Cat)', 'CT DS (Cat)', 'MTD (Cat)', '% MTD DS (Cat)'])
-        if has_brand: cols_order.extend(['MBS Brand', 'Đã Mua (Brand)', '% MTD (Brand)', 'CT DS (Brand)', 'MTD (Brand)', '% MTD DS (Brand)'])
-        
-        for col in cols_order:
-            val = row[col]
-            if pd.isna(val): val = ""
-            
-            if 'CT DS' in col or 'MTD (Cat)' in col or 'MTD (Brand)' in col:
-                val = format_scaled_thousand(val)
-                
-            is_pct = '%' in col
-            style_bg = color_pct_bg(val) if is_pct and not is_total else ''
-            
-            if is_total:
-                if col in ['CT DS (Cat)', 'MTD (Cat)', 'CT DS (Brand)', 'MTD (Brand)']:
-                    html.append(f'<td style="background-color: #fff5f5; color: #c53030 !important; font-weight: 900 !important; text-align: right; white-space: nowrap;">{val}</td>')
-                elif is_pct:
-                    html.append(f'<td style="{style_bg} text-align: center; font-weight: 900 !important; color: #c53030 !important;">{val}</td>')
-                else:
-                    align = 'left' if col == 'Tên NV' else 'center'
-                    html.append(f'<td style="background-color: #fff5f5; color: #c53030 !important; font-weight: 900 !important; text-align: {align}; white-space: nowrap;">{val}</td>')
-            else:
-                if col in ['CT DS (Cat)', 'MTD (Cat)', 'CT DS (Brand)', 'MTD (Brand)']:
-                    html.append(f'<td style="text-align: right; white-space: nowrap;">{val}</td>')
-                elif is_pct:
-                    html.append(f'<td style="{style_bg} text-align: center;">{val}</td>')
-                else:
-                    align = 'left' if col == 'Tên NV' else 'center'
-                    html.append(f'<td style="text-align: {align}; white-space: nowrap;">{val}</td>')
-        html.append('</tr>')
-    html.append('</tbody>')
-    html.append('</table></div>')
-    return "".join(html)
-
-def render_html_table(df, height_style=""):
-    html = [f'<div style="overflow-x: auto; -webkit-overflow-scrolling: touch; {height_style}"><table class="custom-kpi-table">']
-    html.append('<thead><tr>')
-    for col in df.columns:
-        html.append(f'<th>{col}</th>')
-    html.append('</tr></thead>')
-    
-    html.append('<tbody>')
-    for _, row in df.iterrows():
-        is_total = str(row.get('Tên NVBH', '')).strip() == 'TỔNG CỘNG' or str(row.get('Tên NV', '')).strip() == 'TỔNG CỘNG'
-        html.append('<tr>')
-        for col in df.columns:
-            val = row[col]
-            if pd.isna(val): val = ""
-            
-            if col in ['% MTD', '% MTD (OFF)', '% MTD (ON)']:
-                style_bg = color_pct_bg(val)
-                if is_total:
-                    html.append(f'<td style="{style_bg} text-align: center; font-weight: 900 !important; color: #c53030 !important;">{val}</td>')
-                else:
-                    html.append(f'<td style="{style_bg} text-align: center;">{val}</td>')
-            elif is_total:
-                align = 'left' if col in ['Tên NVBH', 'Tên NV'] else ('center' if col in ['STT', 'Mã NVBH'] else 'right')
-                html.append(f'<td style="background-color: #fff5f5; color: #c53030 !important; font-weight: 900 !important; text-align: {align}; white-space: nowrap;">{val}</td>')
-            elif col in ['Tên NVBH', 'Tên NV']:
-                html.append(f'<td style="color: #1a365d; text-align: left; white-space: nowrap;">{val}</td>')
-            else:
-                align = 'center' if col in ['STT', 'Mã NVBH', 'Thực Hiện Ngày', 'MTD', 'Phát sinh Ngày (OFF)', 'MTD (OFF)', 'Phát sinh Ngày (ON)', 'MTD (ON)', 'Chỉ Tiêu KPI', 'Target (OFF)', 'Target (ON)', 'VIP MCH', 'KH Combo OFF', 'KH Combo ON', 'MBS Cat', 'MBS Brand'] else 'right'
-                if col in ['Chỉ Tiêu Doanh Số', 'Doanh Số MTD', 'Thực Hiện Ngày']: align = 'right'
-                html.append(f'<td style="text-align: {align}; white-space: nowrap;">{val}</td>')
-        html.append('</tr>')
-    html.append('</tbody>')
-    html.append('</table></div>')
-    return "".join(html)
-
 # ====================== GIAO DIỆN ======================
 st.markdown(f"""
 <div class="main-header">
     <div class="logo">{logo_svg}</div>
     <div class="title-block">
-        <h1>SƯ ĐOÀN HCM4 - TRUNG ĐOÀN 10</h1>
+        <h1>SƯ ĐOÀN HCM4 - TRUNG ĐOÀN 10 - TEST</h1>
         <h2>TRACKING KPI ĐDKD - TEAM SS TRƯƠNG THANH TÂN</h2>
     </div>
 </div>
@@ -1191,22 +1049,6 @@ tab_kpi, tab_mcp, tab_cat, tab_brand, tab_dskh_off, tab_dskh_on = st.tabs([
 
 # ----- TAB KPI -----
 with tab_kpi:
-    col_zoom_btn, col_dummy = st.columns([1.5, 5])
-    if "is_kpi_fullscreen" not in st.session_state:
-        st.session_state.is_kpi_fullscreen = False
-        
-    with col_zoom_btn:
-        if st.session_state.is_kpi_fullscreen:
-            if st.button("🗜️ Thu nhỏ bảng lại"):
-                st.session_state.is_kpi_fullscreen = False
-                st.rerun()
-        else:
-            if st.button("🔲 Phóng to Full Size"):
-                st.session_state.is_kpi_fullscreen = True
-                st.rerun()
-
-    table_height_style = "" if st.session_state.is_kpi_fullscreen else "max-height: 480px; overflow-y: auto;"
-
     if selected_kpi == "SUMMARY":
         saved_sum_thu = st.query_params.get("sum_thu", "")
         default_sum_thu_list = [x.strip() for x in saved_sum_thu.split(",") if x.strip()] if saved_sum_thu else []
@@ -1250,7 +1092,21 @@ with tab_kpi:
         with c3: render_metric_card("Tổng KH Combo ON", f"{tot_row_s['KH Combo ON']:,}")
         with c4: render_metric_card("Tổng MBS Cat / Brand", f"{tot_row_s['MBS Cat']:,} / {tot_row_s['MBS Brand']:,}")
         
-        st.markdown(render_summary_html_table(df_summary, selected_metrics, height_style=table_height_style), unsafe_allow_html=True)
+        has_vip = 'VIP MCH' in selected_metrics
+        has_off = 'KH Combo OFF' in selected_metrics
+        has_on = 'KH Combo ON' in selected_metrics
+        has_cat = 'MBS Cat' in selected_metrics
+        has_brand = 'MBS Brand' in selected_metrics
+        
+        cols_order = ['STT', 'Tên NV']
+        if has_vip: cols_order.extend(['VIP MCH', 'Đã Mua (VIP)', '% MTD (VIP)'])
+        if has_off: cols_order.extend(['KH Combo OFF', 'Đã Mua (OFF)', '% MTD (OFF)'])
+        if has_on: cols_order.extend(['KH Combo ON', 'Đã Mua (ON)', '% MTD (ON)'])
+        if has_cat: cols_order.extend(['MBS Cat', 'Đã Mua (Cat)', '% MTD (Cat)', 'CT DS (Cat)', 'MTD (Cat)', '% MTD DS (Cat)'])
+        if has_brand: cols_order.extend(['MBS Brand', 'Đã Mua (Brand)', '% MTD (Brand)', 'CT DS (Brand)', 'MTD (Brand)', '% MTD DS (Brand)'])
+        
+        st.dataframe(df_summary[cols_order], use_container_width=True, height=450, hide_index=True)
+        
         st.markdown(f"""
         <div class="note-box">
             <b>NHẬN XÉT BÁO CÁO TỔNG HỢP:</b><br>
@@ -1277,11 +1133,7 @@ with tab_kpi:
         with c3: render_metric_card("📊 % MTD", pct_team)
         with c4: render_metric_card("🆕 Thực Hiện Ngày", f"{total_today:,.0f}".replace(",", "."))
         
-        df_display = df_r.copy()
-        for col in ['Chỉ Tiêu Doanh Số', 'Thực Hiện Ngày', 'Doanh Số MTD']:
-            df_display[col] = df_display[col].apply(lambda x: f"{x:,.0f}".replace(",", ".") if isinstance(x, (int, float)) and x > 0 else ("0" if x == 0 else x))
-            
-        st.markdown(render_html_table(df_display, height_style=table_height_style), unsafe_allow_html=True)
+        st.dataframe(df_r, use_container_width=True, height=450, hide_index=True)
         
         df_eval = df_r.iloc[:-1].copy()
         df_eval['_pct_val'] = df_eval['% MTD'].str.replace('%','').astype(float)
@@ -1314,7 +1166,9 @@ with tab_kpi:
         with c2: render_metric_card("📈 MTD", f"{total_mtd:,}")
         with c3: render_metric_card("📊 % MTD", pct_team)
         with c4: render_metric_card("🆕 Ngày", f"+{total_ngay}")
-        st.markdown(render_html_table(df_r, height_style=table_height_style), unsafe_allow_html=True)
+        
+        st.dataframe(df_r, use_container_width=True, height=450, hide_index=True)
+        
         df_eval = df_r.iloc[:-1].copy()
         df_eval['_pct_val'] = df_eval['% MTD'].str.replace('%','').astype(float)
         
@@ -1352,7 +1206,8 @@ with tab_kpi:
         with c3: render_metric_card("Phát sinh Ngày (OFF)", f"+{ngay_off}")
         with c4: render_metric_card("Phát sinh Ngày (ON)", f"+{ngay_on}")
         
-        st.markdown(render_html_table(df_combo, height_style=table_height_style), unsafe_allow_html=True)
+        st.dataframe(df_combo, use_container_width=True, height=450, hide_index=True)
+        
         st.markdown(f"""
         <div class="note-box">
             <b>NHẬN XÉT BÁO CÁO COMBO LŨY KẾ (MATRIX OFF/ON):</b><br>
