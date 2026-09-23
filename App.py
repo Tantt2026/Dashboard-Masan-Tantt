@@ -1234,35 +1234,17 @@ tab_kpi, tab_mcp, tab_cat, tab_brand, tab_dskh_off, tab_dskh_on = st.tabs([
 # ----- TAB KPI -----
 with tab_kpi:
     if selected_kpi == "SUMMARY":
-        saved_sum_thu = st.query_params.get("sum_thu", "")
-        default_sum_thu_list = [x.strip() for x in saved_sum_thu.split(",") if x.strip()] if saved_sum_thu else []
-        
-        def update_sum_params():
-            st.query_params["sum_thu"] = ",".join(st.session_state.sum_thu_input) if st.session_state.sum_thu_input else ""
-
         col_f_thu, col_f_metrics = st.columns([1, 1.5])
         with col_f_thu:
             st.markdown('<p class="filter-label">📅 Lọc Theo Thứ (Chọn nhiều)</p>', unsafe_allow_html=True)
             thu_opts = ["2","3","4","5","6","7","25","36","47"]
-            valid_sum_thu = [t for t in default_sum_thu_list if t in thu_opts]
-            f_thu_sum = st.multiselect("", thu_opts, default=valid_sum_thu, key="sum_thu_input", on_change=update_sum_params, label_visibility="collapsed")
+            f_thu_sum = st.multiselect("", thu_opts, default=[], key="sum_thu_input", label_visibility="collapsed")
         
         with col_f_metrics:
             st.markdown('<p class="filter-label">📊 Chọn Chỉ Số Hiển Thị</p>', unsafe_allow_html=True)
             metric_opts = ["VIP MCH", "KH Combo OFF", "KH Combo ON", "MBS Cat", "MBS Brand"]
-            saved_metrics = st.query_params.get("sum_metrics", "")
-            default_metrics = [x.strip() for x in saved_metrics.split(",") if x.strip()] if saved_metrics else metric_opts
-            valid_metrics = [m for m in default_metrics if m in metric_opts]
-            if not valid_metrics: valid_metrics = metric_opts
-            
-            def update_metric_params():
-                st.query_params["sum_metrics"] = ",".join(st.session_state.sum_metrics_input) if st.session_state.sum_metrics_input else ""
-                
-            selected_metrics = st.multiselect("", metric_opts, default=valid_metrics, key="sum_metrics_input", on_change=update_metric_params, label_visibility="collapsed")
+            selected_metrics = st.multiselect("", metric_opts, default=metric_opts, key="sum_metrics_input", label_visibility="collapsed")
             if not selected_metrics: selected_metrics = metric_opts
-
-        st.query_params["sum_thu"] = ",".join(st.session_state.sum_thu_input) if st.session_state.sum_thu_input else ""
-        st.query_params["sum_metrics"] = ",".join(selected_metrics)
 
         df_summary = build_summary_report(df, report_date, df_combo_off, df_combo_on, df_cat, df_brand, mcp, filter_nv, f_thu_sum)
         tot_row_s = df_summary.iloc[-1]
@@ -1388,39 +1370,6 @@ with tab_kpi:
         </div>
         """, unsafe_allow_html=True)
 
-# Callbacks for instant query params sync
-def update_mcp_params():
-    st.query_params["mcp_nv"] = ",".join(st.session_state.mcp_nv_input) if st.session_state.mcp_nv_input else ""
-    st.query_params["mcp_thu"] = ",".join(st.session_state.mcp_thu_input) if st.session_state.mcp_thu_input else ""
-    st.query_params["mcp_ma"] = st.session_state.mcp_ma_input
-    st.query_params["mcp_ten"] = st.session_state.mcp_ten_input
-    st.query_params["mcp_vip"] = ",".join(st.session_state.mcp_vip_input) if st.session_state.mcp_vip_input else ""
-    st.query_params["mcp_ds"] = ",".join(st.session_state.mcp_ds_input) if st.session_state.mcp_ds_input else ""
-
-def update_cat_params():
-    st.query_params["cat_nv"] = ",".join(st.session_state.cat_nv_input) if st.session_state.cat_nv_input else ""
-    st.query_params["cat_thu"] = ",".join(st.session_state.cat_thu_input) if st.session_state.cat_thu_input else ""
-    st.query_params["cat_ma"] = st.session_state.cat_ma_input
-    st.query_params["cat_ten"] = st.session_state.cat_ten_input
-
-def update_brand_params():
-    st.query_params["brand_nv"] = ",".join(st.session_state.brand_nv_input) if st.session_state.brand_nv_input else ""
-    st.query_params["brand_thu"] = ",".join(st.session_state.brand_thu_input) if st.session_state.brand_thu_input else ""
-    st.query_params["brand_ma"] = st.session_state.brand_ma_input
-    st.query_params["brand_ten"] = st.session_state.brand_ten_input
-
-def update_off_params():
-    st.query_params["off_nv"] = ",".join(st.session_state.off_nv_input) if st.session_state.off_nv_input else ""
-    st.query_params["off_thu"] = ",".join(st.session_state.off_thu_input) if st.session_state.off_thu_input else ""
-    st.query_params["off_ma"] = st.session_state.off_ma_input
-    st.query_params["off_ten"] = st.session_state.off_ten_input
-
-def update_on_params():
-    st.query_params["on_nv"] = ",".join(st.session_state.on_nv_input) if st.session_state.on_nv_input else ""
-    st.query_params["on_thu"] = ",".join(st.session_state.on_thu_input) if st.session_state.on_thu_input else ""
-    st.query_params["on_ma"] = st.session_state.on_ma_input
-    st.query_params["on_ten"] = st.session_state.on_ten_input
-
 # ----- TAB MCP -----
 with tab_mcp:
     st.markdown('<h3 style="color: #034ea2; font-weight: 800; margin-bottom: 0px; font-size: 15px;">🗺️ MCP VISIT & MAPPING DOANH SỐ BÁN HÀNG</h3>', unsafe_allow_html=True)
@@ -1433,48 +1382,30 @@ with tab_mcp:
         col_thu = find_col(mcp, ['Thứ','Frequency','Tần suất'])
         col_vip = find_col(mcp, ['VIP MCH', 'VIP_MCH'])
         col_ds = find_col(mcp, ['Doanh Số MTD', 'Doanh số MTD', 'Doanh_so_MTD'])
-        
-        saved_mcp_nv = st.query_params.get("mcp_nv", "")
-        default_nv_list = [x.strip() for x in saved_mcp_nv.split(",") if x.strip()] if saved_mcp_nv else []
-        
-        saved_mcp_thu = st.query_params.get("mcp_thu", "")
-        default_thu_list = [x.strip() for x in saved_mcp_thu.split(",") if x.strip()] if saved_mcp_thu else []
-        
-        saved_mcp_ma = st.query_params.get("mcp_ma", "")
-        saved_mcp_ten = st.query_params.get("mcp_ten", "")
-        
-        saved_mcp_vip = st.query_params.get("mcp_vip", "")
-        default_vip_list = [x.strip() for x in saved_mcp_vip.split(",") if x.strip()] if saved_mcp_vip else []
-        
-        saved_mcp_ds = st.query_params.get("mcp_ds", "")
-        default_ds_list = [x.strip() for x in saved_mcp_ds.split(",") if x.strip()] if saved_mcp_ds else []
 
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('<p class="filter-label">👤 Lọc Nhân Viên (ĐDKD - Chọn nhiều)</p>', unsafe_allow_html=True)
             nv_opts = sorted(mcp[col_nv].dropna().astype(str).unique().tolist()) if col_nv else []
-            valid_default_nv = [v for v in default_nv_list if v in nv_opts]
-            f_nv = st.multiselect("", nv_opts, default=valid_default_nv, key="mcp_nv_input", on_change=update_mcp_params, label_visibility="collapsed")
+            f_nv = st.multiselect("", nv_opts, default=[], key="mcp_nv_input", label_visibility="collapsed")
         with c2:
             st.markdown('<p class="filter-label">📅 Lọc Theo Thứ (Chọn nhiều)</p>', unsafe_allow_html=True)
             thu_opts = ["2","3","4","5","6","7","25","36","47"]
-            valid_default_thu = [t for t in default_thu_list if t in thu_opts]
-            f_thu = st.multiselect("", thu_opts, default=valid_default_thu, key="mcp_thu_input", on_change=update_mcp_params, label_visibility="collapsed")
+            f_thu = st.multiselect("", thu_opts, default=[], key="mcp_thu_input", label_visibility="collapsed")
             
         c3, c4 = st.columns(2)
         with c3:
             st.markdown('<p class="filter-label">🆔 Lọc Mã Khách Hàng</p>', unsafe_allow_html=True)
-            f_ma = st.text_input("", value=saved_mcp_ma, key="mcp_ma_input", on_change=update_mcp_params, label_visibility="collapsed")
+            f_ma = st.text_input("", value="", key="mcp_ma_input", label_visibility="collapsed")
         with c4:
             st.markdown('<p class="filter-label">🏪 Lọc Tên Khách Hàng</p>', unsafe_allow_html=True)
-            f_ten = st.text_input("", value=saved_mcp_ten, key="mcp_ten_input", on_change=update_mcp_params, label_visibility="collapsed")
+            f_ten = st.text_input("", value="", key="mcp_ten_input", label_visibility="collapsed")
 
         c5, c6 = st.columns(2)
         with c5:
             st.markdown('<p class="filter-label">⭐ Lọc VIP MCH (Chọn nhiều)</p>', unsafe_allow_html=True)
             vip_opts = sorted(mcp[col_vip].dropna().astype(str).unique().tolist()) if col_vip else []
-            valid_default_vip = [v for v in default_vip_list if v in vip_opts]
-            f_vip = st.multiselect("", vip_opts, default=valid_default_vip, key="mcp_vip_input", on_change=update_mcp_params, label_visibility="collapsed")
+            f_vip = st.multiselect("", vip_opts, default=[], key="mcp_vip_input", label_visibility="collapsed")
         with c6:
             st.markdown('<p class="filter-label">💰 Lọc Doanh Số MTD Thực Tế (Chọn nhiều)</p>', unsafe_allow_html=True)
             if col_ds:
@@ -1482,15 +1413,7 @@ with tab_mcp:
                 ds_opts = [format_number_vn(v) for v in raw_ds_vals]
             else:
                 ds_opts = []
-            valid_default_ds = [d for d in default_ds_list if d in ds_opts]
-            f_ds = st.multiselect("", ds_opts, default=valid_default_ds, key="mcp_ds_input", on_change=update_mcp_params, label_visibility="collapsed")
-            
-        st.query_params["mcp_nv"] = ",".join(st.session_state.mcp_nv_input) if st.session_state.mcp_nv_input else ""
-        st.query_params["mcp_thu"] = ",".join(st.session_state.mcp_thu_input) if st.session_state.mcp_thu_input else ""
-        st.query_params["mcp_ma"] = st.session_state.mcp_ma_input
-        st.query_params["mcp_ten"] = st.session_state.mcp_ten_input
-        st.query_params["mcp_vip"] = ",".join(st.session_state.mcp_vip_input) if st.session_state.mcp_vip_input else ""
-        st.query_params["mcp_ds"] = ",".join(st.session_state.mcp_ds_input) if st.session_state.mcp_ds_input else ""
+            f_ds = st.multiselect("", ds_opts, default=[], key="mcp_ds_input", label_visibility="collapsed")
 
         df_f = mcp.copy()
         if f_nv and col_nv: df_f = df_f[df_f[col_nv].astype(str).isin(f_nv)]
@@ -1508,19 +1431,8 @@ with tab_mcp:
                 df_f[col] = pd.to_numeric(df_f[col], errors='coerce').apply(format_number_vn)
         
         all_cols_mcp = df_f.columns.tolist()
-        saved_mcp_cols = st.query_params.get("mcp_cols", None)
-        if saved_mcp_cols:
-            if isinstance(saved_mcp_cols, str):
-                default_cols_mcp = [c.strip() for c in saved_mcp_cols.split(",") if c.strip() in all_cols_mcp]
-            else:
-                default_cols_mcp = [c for c in saved_mcp_cols if c in all_cols_mcp]
-            if not default_cols_mcp: default_cols_mcp = all_cols_mcp
-        else:
-            default_cols_mcp = all_cols_mcp
-
         with st.popover("👁️ Chọn cột hiển thị (MCP)", use_container_width=False):
-            selected_mcp_cols = st.multiselect("Bỏ chọn để ẩn cột:", all_cols_mcp, default=default_cols_mcp, key="mcp_cols_input")
-        st.query_params["mcp_cols"] = ",".join(selected_mcp_cols)
+            selected_mcp_cols = st.multiselect("Bỏ chọn để ẩn cột:", all_cols_mcp, default=all_cols_mcp, key="mcp_cols_input")
 
         st.dataframe(df_f[selected_mcp_cols], use_container_width=True, height=450, hide_index=True)
         st.caption(f"Hiển thị: {len(df_f):,} / {len(mcp):,} cửa hàng")
@@ -1535,40 +1447,24 @@ with tab_cat:
         col_ma = find_col(df_cat, ['Outlet Code','Outlet_code','Mã CH','Mã khách hàng'])
         col_ten = find_col(df_cat, ['Outlet Name','Outlet_name','Tên CH','Tên khách hàng'])
         col_thu = find_col(df_cat, ['Thứ'])
-        
-        saved_cat_nv = st.query_params.get("cat_nv", "")
-        default_cat_nv_list = [x.strip() for x in saved_cat_nv.split(",") if x.strip()] if saved_cat_nv else []
-        
-        saved_cat_thu = st.query_params.get("cat_thu", "")
-        default_cat_thu_list = [x.strip() for x in saved_cat_thu.split(",") if x.strip()] if saved_cat_thu else []
-        
-        saved_cat_ma = st.query_params.get("cat_ma", "")
-        saved_cat_ten = st.query_params.get("cat_ten", "")
 
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('<p class="filter-label">👤 Lọc Nhân Viên (ĐDKD - Chọn nhiều)</p>', unsafe_allow_html=True)
             nv_opts = sorted(df_cat[col_nv].dropna().astype(str).unique().tolist()) if col_nv else []
-            valid_cat_nv = [v for v in default_cat_nv_list if v in nv_opts]
-            f_nv = st.multiselect("", nv_opts, default=valid_cat_nv, key="cat_nv_input", on_change=update_cat_params, label_visibility="collapsed")
+            f_nv = st.multiselect("", nv_opts, default=[], key="cat_nv_input", label_visibility="collapsed")
         with c2:
             st.markdown('<p class="filter-label">📅 Lọc Theo Thứ (Chọn nhiều)</p>', unsafe_allow_html=True)
             thu_opts = ["2","3","4","5","6","7","25","36","47"]
-            valid_cat_thu = [t for t in default_cat_thu_list if t in thu_opts]
-            f_thu = st.multiselect("", thu_opts, default=valid_cat_thu, key="cat_thu_input", on_change=update_cat_params, label_visibility="collapsed")
+            f_thu = st.multiselect("", thu_opts, default=[], key="cat_thu_input", label_visibility="collapsed")
             
         c3, c4 = st.columns(2)
         with c3:
             st.markdown('<p class="filter-label">🆔 Lọc Mã Khách Hàng</p>', unsafe_allow_html=True)
-            f_ma = st.text_input("", value=saved_cat_ma, key="cat_ma_input", on_change=update_cat_params, label_visibility="collapsed")
+            f_ma = st.text_input("", value="", key="cat_ma_input", label_visibility="collapsed")
         with c4:
             st.markdown('<p class="filter-label">🏪 Lọc Tên Khách Hàng</p>', unsafe_allow_html=True)
-            f_ten = st.text_input("", value=saved_cat_ten, key="cat_ten_input", on_change=update_cat_params, label_visibility="collapsed")
-            
-        st.query_params["cat_nv"] = ",".join(st.session_state.cat_nv_input) if st.session_state.cat_nv_input else ""
-        st.query_params["cat_thu"] = ",".join(st.session_state.cat_thu_input) if st.session_state.cat_thu_input else ""
-        st.query_params["cat_ma"] = st.session_state.cat_ma_input
-        st.query_params["cat_ten"] = st.session_state.cat_ten_input
+            f_ten = st.text_input("", value="", key="cat_ten_input", label_visibility="collapsed")
 
         df_f = df_cat.copy()
         if f_nv and col_nv: df_f = df_f[df_f[col_nv].astype(str).isin(f_nv)]
@@ -1580,19 +1476,8 @@ with tab_cat:
                 df_f[col] = pd.to_numeric(df_f[col], errors='coerce').apply(format_number_vn)
         
         all_cols_cat = df_f.columns.tolist()
-        saved_cat_cols = st.query_params.get("cat_cols", None)
-        if saved_cat_cols:
-            if isinstance(saved_cat_cols, str):
-                default_cols_cat = [c.strip() for c in saved_cat_cols.split(",") if c.strip() in all_cols_cat]
-            else:
-                default_cols_cat = [c for c in saved_cat_cols if c in all_cols_cat]
-            if not default_cols_cat: default_cols_cat = all_cols_cat
-        else:
-            default_cols_cat = all_cols_cat
-
         with st.popover("👁️ Chọn cột hiển thị (Category)", use_container_width=False):
-            selected_cat_cols = st.multiselect("Bỏ chọn để ẩn cột:", all_cols_cat, default=default_cols_cat, key="cat_cols_input")
-        st.query_params["cat_cols"] = ",".join(selected_cat_cols)
+            selected_cat_cols = st.multiselect("Bỏ chọn để ẩn cột:", all_cols_cat, default=all_cols_cat, key="cat_cols_input")
 
         st.dataframe(df_f[selected_cat_cols], use_container_width=True, height=450, hide_index=True)
         st.caption(f"Hiển thị: {len(df_f):,} / {len(df_cat):,} dòng")
@@ -1607,40 +1492,24 @@ with tab_brand:
         col_ma = find_col(df_brand, ['Outlet Code','Outlet_code','Mã CH','Mã khách hàng'])
         col_ten = find_col(df_brand, ['Outlet Name','Outlet_name','Tên CH','Tên khách hàng'])
         col_thu = find_col(df_brand, ['Thứ'])
-        
-        saved_brand_nv = st.query_params.get("brand_nv", "")
-        default_brand_nv_list = [x.strip() for x in saved_brand_nv.split(",") if x.strip()] if saved_brand_nv else []
-        
-        saved_brand_thu = st.query_params.get("brand_thu", "")
-        default_brand_thu_list = [x.strip() for x in saved_brand_thu.split(",") if x.strip()] if saved_brand_thu else []
-        
-        saved_brand_ma = st.query_params.get("brand_ma", "")
-        saved_brand_ten = st.query_params.get("brand_ten", "")
 
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('<p class="filter-label">👤 Lọc Nhân Viên (ĐDKD - Chọn nhiều)</p>', unsafe_allow_html=True)
             nv_opts = sorted(df_brand[col_nv].dropna().astype(str).unique().tolist()) if col_nv else []
-            valid_brand_nv = [v for v in default_brand_nv_list if v in nv_opts]
-            f_nv = st.multiselect("", nv_opts, default=valid_brand_nv, key="brand_nv_input", on_change=update_brand_params, label_visibility="collapsed")
+            f_nv = st.multiselect("", nv_opts, default=[], key="brand_nv_input", label_visibility="collapsed")
         with c2:
             st.markdown('<p class="filter-label">📅 Lọc Theo Thứ (Chọn nhiều)</p>', unsafe_allow_html=True)
             thu_opts = ["2","3","4","5","6","7","25","36","47"]
-            valid_brand_thu = [t for t in default_brand_thu_list if t in thu_opts]
-            f_thu = st.multiselect("", thu_opts, default=valid_brand_thu, key="brand_thu_input", on_change=update_brand_params, label_visibility="collapsed")
+            f_thu = st.multiselect("", thu_opts, default=[], key="brand_thu_input", label_visibility="collapsed")
             
         c3, c4 = st.columns(2)
         with c3:
             st.markdown('<p class="filter-label">🆔 Lọc Mã Khách Hàng</p>', unsafe_allow_html=True)
-            f_ma = st.text_input("", value=saved_brand_ma, key="brand_ma_input", on_change=update_brand_params, label_visibility="collapsed")
+            f_ma = st.text_input("", value="", key="brand_ma_input", label_visibility="collapsed")
         with c4:
             st.markdown('<p class="filter-label">🏪 Lọc Tên Khách Hàng</p>', unsafe_allow_html=True)
-            f_ten = st.text_input("", value=saved_brand_ten, key="brand_ten_input", on_change=update_brand_params, label_visibility="collapsed")
-            
-        st.query_params["brand_nv"] = ",".join(st.session_state.brand_nv_input) if st.session_state.brand_nv_input else ""
-        st.query_params["brand_thu"] = ",".join(st.session_state.brand_thu_input) if st.session_state.brand_thu_input else ""
-        st.query_params["brand_ma"] = st.session_state.brand_ma_input
-        st.query_params["brand_ten"] = st.session_state.brand_ten_input
+            f_ten = st.text_input("", value="", key="brand_ten_input", label_visibility="collapsed")
 
         df_f = df_brand.copy()
         if f_nv and col_nv: df_f = df_f[df_f[col_nv].astype(str).isin(f_nv)]
@@ -1652,19 +1521,8 @@ with tab_brand:
                 df_f[col] = pd.to_numeric(df_f[col], errors='coerce').apply(format_number_vn)
         
         all_cols_brand = df_f.columns.tolist()
-        saved_brand_cols = st.query_params.get("brand_cols", None)
-        if saved_brand_cols:
-            if isinstance(saved_brand_cols, str):
-                default_cols_brand = [c.strip() for c in saved_brand_cols.split(",") if c.strip() in all_cols_brand]
-            else:
-                default_cols_brand = [c for c in saved_brand_cols if c in all_cols_brand]
-            if not default_cols_brand: default_cols_brand = all_cols_brand
-        else:
-            default_cols_brand = all_cols_brand
-
         with st.popover("👁️ Chọn cột hiển thị (Brand)", use_container_width=False):
-            selected_brand_cols = st.multiselect("Bỏ chọn để ẩn cột:", all_cols_brand, default=default_cols_brand, key="brand_cols_input")
-        st.query_params["brand_cols"] = ",".join(selected_brand_cols)
+            selected_brand_cols = st.multiselect("Bỏ chọn để ẩn cột:", all_cols_brand, default=all_cols_brand, key="brand_cols_input")
 
         st.dataframe(df_f[selected_brand_cols], use_container_width=True, height=450, hide_index=True)
         st.caption(f"Hiển thị: {len(df_f):,} / {len(df_brand):,} dòng")
@@ -1679,40 +1537,24 @@ with tab_dskh_off:
         col_ma_off = find_col(df_combo_off, ['outlet_code', 'Outlet Code', 'Mã CH'])
         col_ten_off = find_col(df_combo_off, ['outlet_name', 'Outlet Name', 'Tên CH'])
         col_thu_off = find_col(df_combo_off, ['Thứ', 'Frequency'])
-        
-        saved_off_nv = st.query_params.get("off_nv", "")
-        default_off_nv_list = [x.strip() for x in saved_off_nv.split(",") if x.strip()] if saved_off_nv else []
-        
-        saved_off_thu = st.query_params.get("off_thu", "")
-        default_off_thu_list = [x.strip() for x in saved_off_thu.split(",") if x.strip()] if saved_off_thu else []
-        
-        saved_off_ma = st.query_params.get("off_ma", "")
-        saved_off_ten = st.query_params.get("off_ten", "")
 
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('<p class="filter-label">👤 Lọc Nhân Viên (ĐDKD - Chọn nhiều)</p>', unsafe_allow_html=True)
             nv_opts_off = sorted(df_combo_off[col_nv_off].dropna().astype(str).unique().tolist()) if col_nv_off else []
-            valid_off_nv = [v for v in default_off_nv_list if v in nv_opts_off]
-            f_off_nv = st.multiselect("", nv_opts_off, default=valid_off_nv, key="off_nv_input", on_change=update_off_params, label_visibility="collapsed")
+            f_off_nv = st.multiselect("", nv_opts_off, default=[], key="off_nv_input", label_visibility="collapsed")
         with c2:
             st.markdown('<p class="filter-label">📅 Lọc Theo Thứ (Chọn nhiều)</p>', unsafe_allow_html=True)
             thu_opts = ["2","3","4","5","6","7","25","36","47"]
-            valid_off_thu = [t for t in default_off_thu_list if t in thu_opts]
-            f_off_thu = st.multiselect("", thu_opts, default=valid_off_thu, key="off_thu_input", on_change=update_off_params, label_visibility="collapsed")
+            f_off_thu = st.multiselect("", thu_opts, default=[], key="off_thu_input", label_visibility="collapsed")
             
         c3, c4 = st.columns(2)
         with c3:
             st.markdown('<p class="filter-label">🆔 Lọc Mã Khách Hàng</p>', unsafe_allow_html=True)
-            f_off_ma = st.text_input("", value=saved_off_ma, key="off_ma_input", on_change=update_off_params, label_visibility="collapsed")
+            f_off_ma = st.text_input("", value="", key="off_ma_input", label_visibility="collapsed")
         with c4:
             st.markdown('<p class="filter-label">🏪 Lọc Tên Khách Hàng</p>', unsafe_allow_html=True)
-            f_off_ten = st.text_input("", value=saved_off_ten, key="off_ten_input", on_change=update_off_params, label_visibility="collapsed")
-            
-        st.query_params["off_nv"] = ",".join(st.session_state.off_nv_input) if st.session_state.off_nv_input else ""
-        st.query_params["off_thu"] = ",".join(st.session_state.off_thu_input) if st.session_state.off_thu_input else ""
-        st.query_params["off_ma"] = st.session_state.off_ma_input
-        st.query_params["off_ten"] = st.session_state.off_ten_input
+            f_off_ten = st.text_input("", value="", key="off_ten_input", label_visibility="collapsed")
 
         df_off_f = df_combo_off.copy()
         if f_off_nv and col_nv_off: df_off_f = df_off_f[df_off_f[col_nv_off].astype(str).isin(f_off_nv)]
@@ -1721,19 +1563,8 @@ with tab_dskh_off:
         df_off_f = filter_by_thu_multi(df_off_f, col_thu_off, f_off_thu)
         
         all_cols_off = df_off_f.columns.tolist()
-        saved_off_cols = st.query_params.get("off_cols", None)
-        if saved_off_cols:
-            if isinstance(saved_off_cols, str):
-                default_cols_off = [c.strip() for c in saved_off_cols.split(",") if c.strip() in all_cols_off]
-            else:
-                default_cols_off = [c for c in saved_off_cols if c in all_cols_off]
-            if not default_cols_off: default_cols_off = all_cols_off
-        else:
-            default_cols_off = all_cols_off
-
         with st.popover("👁️ Chọn cột hiển thị (DSKH OFF)", use_container_width=False):
-            selected_off_cols = st.multiselect("Bỏ chọn để ẩn cột:", all_cols_off, default=default_cols_off, key="off_cols_input")
-        st.query_params["off_cols"] = ",".join(selected_off_cols)
+            selected_off_cols = st.multiselect("Bỏ chọn để ẩn cột:", all_cols_off, default=all_cols_off, key="off_cols_input")
 
         st.dataframe(df_off_f[selected_off_cols], use_container_width=True, height=450, hide_index=True)
         st.caption(f"Hiển thị: {len(df_off_f):,} / {len(df_combo_off):,} cửa hàng")
@@ -1748,40 +1579,24 @@ with tab_dskh_on:
         col_ma_on = find_col(df_combo_on, ['outlet_code', 'Outlet Code', 'Mã CH'])
         col_ten_on = find_col(df_combo_on, ['outlet_name', 'Outlet Name', 'Tên CH'])
         col_thu_on = find_col(df_combo_on, ['Thứ', 'Frequency'])
-        
-        saved_on_nv = st.query_params.get("on_nv", "")
-        default_on_nv_list = [x.strip() for x in saved_on_nv.split(",") if x.strip()] if saved_on_nv else []
-        
-        saved_on_thu = st.query_params.get("on_thu", "")
-        default_on_thu_list = [x.strip() for x in saved_on_thu.split(",") if x.strip()] if saved_on_thu else []
-        
-        saved_on_ma = st.query_params.get("on_ma", "")
-        saved_on_ten = st.query_params.get("on_ten", "")
 
         c1, c2 = st.columns(2)
         with c1:
             st.markdown('<p class="filter-label">👤 Lọc Nhân Viên (ĐDKD - Chọn nhiều)</p>', unsafe_allow_html=True)
             nv_opts_on = sorted(df_combo_on[col_nv_on].dropna().astype(str).unique().tolist()) if col_nv_on else []
-            valid_on_nv = [v for v in default_on_nv_list if v in nv_opts_on]
-            f_on_nv = st.multiselect("", nv_opts_on, default=valid_on_nv, key="on_nv_input", on_change=update_on_params, label_visibility="collapsed")
+            f_on_nv = st.multiselect("", nv_opts_on, default=[], key="on_nv_input", label_visibility="collapsed")
         with c2:
             st.markdown('<p class="filter-label">📅 Lọc Theo Thứ (Chọn nhiều)</p>', unsafe_allow_html=True)
             thu_opts = ["2","3","4","5","6","7","25","36","47"]
-            valid_on_thu = [t for t in default_on_thu_list if t in thu_opts]
-            f_on_thu = st.multiselect("", thu_opts, default=valid_on_thu, key="on_thu_input", on_change=update_on_params, label_visibility="collapsed")
+            f_on_thu = st.multiselect("", thu_opts, default=[], key="on_thu_input", label_visibility="collapsed")
             
         c3, c4 = st.columns(2)
         with c3:
             st.markdown('<p class="filter-label">🆔 Lọc Mã Khách Hàng</p>', unsafe_allow_html=True)
-            f_on_ma = st.text_input("", value=saved_on_ma, key="on_ma_input", on_change=update_on_params, label_visibility="collapsed")
+            f_on_ma = st.text_input("", value="", key="on_ma_input", label_visibility="collapsed")
         with c4:
             st.markdown('<p class="filter-label">🏪 Lọc Tên Khách Hàng</p>', unsafe_allow_html=True)
-            f_on_ten = st.text_input("", value=saved_on_ten, key="on_ten_input", on_change=update_on_params, label_visibility="collapsed")
-            
-        st.query_params["on_nv"] = ",".join(st.session_state.on_nv_input) if st.session_state.on_nv_input else ""
-        st.query_params["on_thu"] = ",".join(st.session_state.on_thu_input) if st.session_state.on_thu_input else ""
-        st.query_params["on_ma"] = st.session_state.on_ma_input
-        st.query_params["on_ten"] = st.session_state.on_ten_input
+            f_on_ten = st.text_input("", value="", key="on_ten_input", label_visibility="collapsed")
 
         df_on_f = df_combo_on.copy()
         if f_on_nv and col_nv_on: df_on_f = df_on_f[df_on_f[col_nv_on].astype(str).isin(f_on_nv)]
@@ -1790,19 +1605,8 @@ with tab_dskh_on:
         df_on_f = filter_by_thu_multi(df_on_f, col_thu_on, f_on_thu)
         
         all_cols_on = df_on_f.columns.tolist()
-        saved_on_cols = st.query_params.get("on_cols", None)
-        if saved_on_cols:
-            if isinstance(saved_on_cols, str):
-                default_cols_on = [c.strip() for c in saved_on_cols.split(",") if c.strip() in all_cols_on]
-            else:
-                default_cols_on = [c for c in saved_on_cols if c in all_cols_on]
-            if not default_cols_on: default_cols_on = all_cols_on
-        else:
-            default_cols_on = all_cols_on
-
         with st.popover("👁️ Chọn cột hiển thị (DSKH ON)", use_container_width=False):
-            selected_on_cols = st.multiselect("Bỏ chọn để ẩn cột:", all_cols_on, default=default_cols_on, key="on_cols_input")
-        st.query_params["on_cols"] = ",".join(selected_on_cols)
+            selected_on_cols = st.multiselect("Bỏ chọn để ẩn cột:", all_cols_on, default=all_cols_on, key="on_cols_input")
 
         st.dataframe(df_on_f[selected_on_cols], use_container_width=True, height=450, hide_index=True)
         st.caption(f"Hiển thị: {len(df_on_f):,} / {len(df_combo_on):,} cửa hàng")
