@@ -94,32 +94,6 @@ st.markdown("""
             font-size: 11px !important;
             padding: 4px 6px !important;
         }
-        .table-fullscreen {
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            z-index: 999999 !important;
-            background: white !important;
-            padding: 15px 10px !important;
-            overflow: auto !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-        }
-    }
-    
-    .table-fullscreen {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        z-index: 999999;
-        background: white;
-        padding: 20px;
-        overflow: auto;
-        box-sizing: border-box;
     }
     
     .filter-label {
@@ -506,8 +480,12 @@ def build_report(df, report_date, targets, report_type, filter_nv=None, mcp_df=N
         off_t = df_today[(df_today['L1']=='Kênh Off Premise') & ~df_today['Sub Division'].astype(str).str.contains('Beer|Bia', case=False, na=False)]
         lines_t = off_t.groupby(['Mã NVBH','Mã đơn hàng'])['Mã sản phẩm'].nunique()
         ngay = lines_t[lines_t>=4].reset_index().groupby('Mã NVBH')['Mã đơn hàng'].nunique()
-        key, title = 'PC_BT', "4. PC BT (PC 4LINE - BEER)"
+        key, title = '4. PC BT (PC 4LINE - BEER)'
     elif report_type == 'PC_ON':
+        # PC Kênh ON (ASO ACTIVE KÊNH ON): 
+        # - Chỉ tiêu: Số CH Kênh On từng bạn đang có (từ mcp_df)
+        # - Thực hiện: Số đơn hàng Kênh ON phát sinh trong ngày
+        # - MTD: Số CH kênh ON đã có mua hàng trong Tháng (unique outlets, mua lại ko cộng dồn)
         on_mtd = df_mtd[df_mtd['L1'] == 'Kênh On Premise']
         mtd = on_mtd.groupby('Mã NVBH')['Mã CH'].nunique()
         
@@ -1217,28 +1195,6 @@ tab_kpi, tab_mcp, tab_cat, tab_brand, tab_dskh_off, tab_dskh_on = st.tabs([
 
 # ----- TAB KPI -----
 with tab_kpi:
-    col_zoom_btn, col_dummy = st.columns([1.5, 5])
-    if "is_kpi_fullscreen" not in st.session_state:
-        st.session_state.is_kpi_fullscreen = False
-        
-    with col_zoom_btn:
-        if st.session_state.is_kpi_fullscreen:
-            if st.button("🗜️ Thu nhỏ lại"):
-                st.session_state.is_kpi_fullscreen = False
-                st.rerun()
-        else:
-            if st.button("🔲 Phóng to Full Size"):
-                st.session_state.is_kpi_fullscreen = True
-                st.rerun()
-
-    container_class = "table-fullscreen" if st.session_state.is_kpi_fullscreen else ""
-    
-    st.markdown(f'<div class="{container_class}">', unsafe_allow_html=True)
-    if st.session_state.is_kpi_fullscreen:
-        if st.button("❌ Đóng Full Size", key="close_fullscreen"):
-            st.session_state.is_kpi_fullscreen = False
-            st.rerun()
-
     if selected_kpi == "SUMMARY":
         saved_sum_thu = st.query_params.get("sum_thu", "")
         default_sum_thu_list = [x.strip() for x in saved_sum_thu.split(",") if x.strip()] if saved_sum_thu else []
@@ -1393,8 +1349,6 @@ with tab_kpi:
             • Đã sắp xếp danh sách theo <b>% MTD (OFF) từ thấp đến cao</b> để bro dễ dàng tracking các ĐDKD cần đôn đốc.
         </div>
         """, unsafe_allow_html=True)
-
-    st.markdown('</div>', unsafe_allow_html=True)
 
 # Callbacks for instant query params sync
 def update_mcp_params():
