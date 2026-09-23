@@ -480,9 +480,9 @@ def build_report(df, report_date, targets, report_type, filter_nv=None, mcp_df=N
         off_t = df_today[(df_today['L1']=='Kênh Off Premise') & ~df_today['Sub Division'].astype(str).str.contains('Beer|Bia', case=False, na=False)]
         lines_t = off_t.groupby(['Mã NVBH','Mã đơn hàng'])['Mã sản phẩm'].nunique()
         ngay = lines_t[lines_t>=4].reset_index().groupby('Mã NVBH')['Mã đơn hàng'].nunique()
-        key, title = 'PC_BT', "4. PC BT KÊNH OFF (ĐƠN ≥ 4 LINE - LOẠI BEER)"
+        key, title = '4. PC BT (PC 4LINE - BEER)'
     elif report_type == 'PC_ON':
-        # PC Kênh ON: 
+        # PC Kênh ON (ASO ACTIVE KÊNH ON): 
         # - Chỉ tiêu: Số CH Kênh On từng bạn đang có (từ mcp_df)
         # - Thực hiện: Số đơn hàng Kênh ON phát sinh trong ngày
         # - MTD: Số CH kênh ON đã có mua hàng trong Tháng (unique outlets, mua lại ko cộng dồn)
@@ -503,7 +503,7 @@ def build_report(df, report_date, targets, report_type, filter_nv=None, mcp_df=N
                 on_mcp = mcp_df[mcp_df[c_l1].astype(str).str.contains('On', case=False, na=False)].copy()
                 grouped = on_mcp.groupby(c_nv_mcp)[c_ma].nunique().to_dict()
                 on_targets = grouped
-        title = "4b. PC KÊNH ON"
+        title = "6. ASO ACTIVE KÊNH ON"
     elif report_type == 'ASO_TEA':
         on = df_mtd[df_mtd['L1']=='Kênh On Premise']
         tea = on[on['Tên SP lower'].str.contains('tea|trà|ô long|olong|búp non', na=False)].copy()
@@ -515,21 +515,21 @@ def build_report(df, report_date, targets, report_type, filter_nv=None, mcp_df=N
         on_t = df_today[df_today['L1']=='Kênh On Premise']
         tea_t = on_t[on_t['Tên SP lower'].str.contains('tea|trà|ô long|olong|búp non', na=False)]
         ngay = tea_t.groupby('Mã NVBH')['Mã CH'].nunique()
-        key, title = 'ASO_ON', "3. ASO TEA KÊNH ON PREMISE"
+        key, title = 'ASO_ON', "3. ASO TEA KÊNH ON"
     elif report_type == 'OMACHI':
         mask = df_mtd['Tên SP lower'].str.contains('omachi', na=False) & df_mtd['Tên SP lower'].str.contains('trộn|tron|xào|xao', na=False)
         mtd = df_mtd[mask].groupby('Mã NVBH')['Mã CH'].nunique()
         first = df_mtd[mask].groupby(['Mã NVBH','Mã CH'])['date'].min().reset_index()
         first.columns = ['Mã NVBH','Mã CH','first_date']
         ngay = first[first['first_date']==report_date].groupby('Mã NVBH')['Mã CH'].nunique()
-        key, title = 'ASO_OMACHI', "2. ASO FOCUS TRẬN VÀNG - OMACHI TRỘN"
+        key, title = 'ASO_OMACHI', "2. ASO FOCUS OMC TRỘN"
     elif report_type == 'CHANTE':
         mask = df_mtd['Tên SP lower'].str.contains('chanté|chante', na=False)
         mtd = df_mtd[mask].groupby('Mã NVBH')['Mã CH'].nunique()
         first = df_mtd[mask].groupby(['Mã NVBH','Mã CH'])['date'].min().reset_index()
         first.columns = ['Mã NVBH','Mã CH','first_date']
         ngay = first[first['first_date']==report_date].groupby('Mã NVBH')['Mã CH'].nunique()
-        key, title = 'ASO_CHANTE', "1. ASO FOCUS TOTAL NHÃN CHANTÉ"
+        key, title = 'ASO_CHANTE', "1. ASO FOCUS CHANTÉ"
     else:
         return pd.DataFrame(), 0, ""
 
@@ -609,7 +609,7 @@ def build_turnover_report(df, report_date, turnover_targets, filter_nv=None):
         'Doanh Số MTD': total_mtd,
         '% MTD': f"{total_pct}%"
     }])
-    return pd.concat([df_out, total_row], ignore_index=True), team_tgt, "8. BÁO CÁO DOANH SỐ (TURNOVER)"
+    return pd.concat([df_out, total_row], ignore_index=True), team_tgt, "8. BÁO CÁO DOANH SỐ TURNOVER"
 
 def build_combo_matrix(df, report_date, df_off_master, df_on_master, filter_nv=None):
     df_mtd = df[df['date'] >= date(report_date.year, report_date.month, 1)].copy()
@@ -1166,15 +1166,15 @@ with f2:
 with f3:
     st.markdown('<p class="filter-label">KPI NAME</p>', unsafe_allow_html=True)
     kpi_map = {
-        "1. ASO FOCUS TOTAL NHÃN CHANTÉ": "CHANTE",
-        "2. ASO FOCUS TRẬN VÀNG - OMACHI TRỘN": "OMACHI",
-        "3. ASO TEA KÊNH ON PREMISE": "ASO_TEA",
-        "4. PC BT KÊNH OFF (ĐƠN ≥ 4 LINE - LOẠI BEER)": "PC_BT",
-        "4b. PC KÊNH ON": "PC_ON",
-        "5. ASO ALL KÊNH OFF": "ASO_ALL",
-        "6. BÁO CÁO ĐƠN HÀNG COMBO": "COMBO",
-        "7. BÁO CÁO TỔNG HỢP THEO NHÂN VIÊN": "SUMMARY",
-        "8. BÁO CÁO DOANH SỐ (TURNOVER)": "TURNOVER",
+        "1. ASO FOCUS CHANTÉ": "CHANTE",
+        "2. ASO FOCUS OMC TRỘN": "OMACHI",
+        "3. ASO TEA KÊNH ON": "ASO_TEA",
+        "4. PC BT (PC 4LINE - BEER)": "PC_BT",
+        "5. ASO ALL": "ASO_ALL",
+        "6. ASO ACTIVE KÊNH ON": "PC_ON",
+        "7. BÁO CÁO ĐH COMBO": "COMBO",
+        "8. BÁO CÁO DOANH SỐ TURNOVER": "TURNOVER",
+        "9. BÁO CÁO TỔNG HỢP": "SUMMARY",
     }
     selected_name = st.selectbox("", list(kpi_map.keys()), key="kpi", label_visibility="collapsed")
     selected_kpi = kpi_map[selected_name]
@@ -1229,7 +1229,7 @@ with tab_kpi:
         df_summary = build_summary_report(df, report_date, df_combo_off, df_combo_on, df_cat, df_brand, mcp, filter_nv, f_thu_sum)
         tot_row_s = df_summary.iloc[-1]
         
-        st.markdown(f'<h3 style="color: #034ea2; font-weight: 800; margin-bottom: 0px; font-size: 15px;">7. BÁO CÁO TỔNG HỢP THEO NHÂN VIÊN - THÁNG {report_date.strftime("%m/%Y")}</h3>', unsafe_allow_html=True)
+        st.markdown(f'<h3 style="color: #034ea2; font-weight: 800; margin-bottom: 0px; font-size: 15px;">9. BÁO CÁO TỔNG HỢP - THÁNG {report_date.strftime("%m/%Y")}</h3>', unsafe_allow_html=True)
         st.caption(f"⚡ Ngày: {report_date.strftime('%d/%m/%Y')} | Lọc NV: {filter_nv} | Lọc Thứ: {f_thu_sum if f_thu_sum else 'Tất cả'}")
         
         c1, c2, c3, c4 = st.columns(4)
@@ -1331,7 +1331,7 @@ with tab_kpi:
         pct_off_team = round(total_off / target_off_total * 100, 1) if target_off_total else 0
         pct_on_team = round(total_on / target_on_total * 100, 1) if target_on_total else 0
 
-        st.markdown(f'<h3 style="color: #034ea2; font-weight: 800; margin-bottom: 0px; font-size: 15px;">6. BÁO CÁO ĐƠN HÀNG COMBO LŨY KẾ (MATRIX OFF/ON) - THÁNG {report_date.strftime("%m/%Y")}</h3>', unsafe_allow_html=True)
+        st.markdown(f'<h3 style="color: #034ea2; font-weight: 800; margin-bottom: 0px; font-size: 15px;">7. BÁO CÁO ĐH COMBO (MATRIX OFF/ON) - THÁNG {report_date.strftime("%m/%Y")}</h3>', unsafe_allow_html=True)
         st.caption(f"⚡ Ngày: {report_date.strftime('%d/%m/%Y')} | Lọc: {filter_nv} | Target OFF: {target_off_total} CH | Target ON: {target_on_total} CH")
         
         c1, c2, c3, c4 = st.columns(4)
