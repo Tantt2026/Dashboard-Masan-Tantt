@@ -874,26 +874,24 @@ def build_summary_report(df, report_date, df_combo_off_raw, df_combo_on_raw, cat
         cat_tgt = int(cat_target_map.get(nv, 0))
         cat_act = int(cat_actual_map.get(nv, int(cat_tgt * 0.8)))
         cat_pct = round(cat_act / cat_tgt * 100, 1) if cat_tgt else 0
-        cat_ct = float(cat_ctds_map.get(nv, 0.0))
-        cat_m = float(cat_mtd_map.get(nv, 0.0))
+        cat_ct = round(float(cat_ctds_map.get(nv, 0.0)) / 1000.0, 3)
+        cat_m = round(float(cat_mtd_map.get(nv, 0.0)) / 1000.0, 3)
         cat_m_pct = round(cat_m / cat_ct * 100, 1) if cat_ct else 0
         
         brand_tgt = int(brand_target_map.get(nv, 0))
         brand_act = int(brand_actual_map.get(nv, brand_tgt))
         brand_pct = round(brand_act / brand_tgt * 100, 1) if brand_tgt else 0
-        brand_ct = float(brand_ctds_map.get(nv, 0.0))
-        brand_m = float(brand_mtd_map.get(nv, 0.0))
+        brand_ct = round(float(brand_ctds_map.get(nv, 0.0)) / 1000.0, 3)
+        brand_m = round(float(brand_mtd_map.get(nv, 0.0)) / 1000.0, 3)
         brand_m_pct = round(brand_m / brand_ct * 100, 1) if brand_ct else 0
         
         rows.append({
             'Tên NV': nv,
-            'VIP MCH': v_tgt, 'Đã Mua (VIP)': v_act, '% MTD (VIP)': f"{v_pct}%",
-            'KH Combo OFF': off_tgt, 'Đã Mua (OFF)': off_act, '% MTD (OFF)': f"{off_pct}%",
-            'KH Combo ON': on_tgt, 'Đã Mua (ON)': on_act, '% MTD (ON)': f"{on_pct}%",
-            'MBS Cat': cat_tgt, 'Đã Mua (Cat)': cat_act, '% MTD (Cat)': f"{cat_pct}%",
-            'CT DS (Cat)': cat_ct, 'MTD (Cat)': cat_m, '% MTD DS (Cat)': f"{cat_m_pct}%",
-            'MBS Brand': brand_tgt, 'Đã Mua (Brand)': brand_act, '% MTD (Brand)': f"{brand_pct}%",
-            'CT DS (Brand)': brand_ct, 'MTD (Brand)': brand_m, '% MTD DS (Brand)': f"{brand_m_pct}%"
+            'VIP MCH': v_tgt, 'Đã Mua': v_act, '% MTD': f"{v_pct}%",
+            'KH Combo OFF': off_tgt, 'Đã Mua.1': off_act, '% MTD.1': f"{off_pct}%",
+            'KH Combo ON': on_tgt, 'Đã Mua.2': on_act, '% MTD.2': f"{on_pct}%",
+            'MBS Cat': cat_tgt, 'Đã Mua.3': cat_act, '% MTD.3': f"{cat_pct}%", 'CT DS': cat_ct, 'MTD': cat_m, '% MTD.4': f"{cat_m_pct}%",
+            'MBS Brand': brand_tgt, 'Đã Mua.4': brand_act, '% MTD.5': f"{brand_pct}%", 'CT DS.1': brand_ct, 'MTD.1': brand_m, '% MTD.6': f"{brand_m_pct}%"
         })
         
     df_out = pd.DataFrame(rows)
@@ -902,41 +900,39 @@ def build_summary_report(df, report_date, df_combo_off_raw, df_combo_on_raw, cat
         df_out.insert(0, 'STT', range(1, len(df_out)+1))
         
         tot_v_tgt = int(df_out['VIP MCH'].sum())
-        tot_v_act = int(df_out['Đã Mua (VIP)'].sum())
+        tot_v_act = int(df_out['Đã Mua'].sum())
         tot_v_pct = round(tot_v_act / tot_v_tgt * 100, 1) if tot_v_tgt else 0
         
         tot_off_tgt = int(df_out['KH Combo OFF'].sum())
-        tot_off_act = int(df_out['Đã Mua (OFF)'].sum())
+        tot_off_act = int(df_out['Đã Mua.1'].sum())
         tot_off_pct = round(tot_off_act / tot_off_tgt * 100, 1) if tot_off_tgt else 0
         
         tot_on_tgt = int(df_out['KH Combo ON'].sum())
-        tot_on_act = int(df_out['Đã Mua (ON)'].sum())
+        tot_on_act = int(df_out['Đã Mua.2'].sum())
         tot_on_pct = round(tot_on_act / tot_on_tgt * 100, 1) if tot_on_tgt else 0
         
         tot_cat_tgt = int(df_out['MBS Cat'].sum())
-        tot_cat_act = int(df_out['Đã Mua (Cat)'].sum())
+        tot_cat_act = int(df_out['Đã Mua.3'].sum())
         tot_cat_pct = round(tot_cat_act / tot_cat_tgt * 100, 1) if tot_cat_tgt else 0
-        tot_cat_ct = float(df_out['CT DS (Cat)'].sum())
-        tot_cat_m = float(df_out['MTD (Cat)'].sum())
+        tot_cat_ct = round(float(df_out['CT DS'].sum()), 3)
+        tot_cat_m = round(float(df_out['MTD'].sum()), 3)
         tot_cat_m_pct = round(tot_cat_m / tot_cat_ct * 100, 1) if tot_cat_ct else 0
         
         tot_brand_tgt = int(df_out['MBS Brand'].sum())
-        tot_brand_act = int(df_out['Đã Mua (Brand)'].sum())
+        tot_brand_act = int(df_out['Đã Mua.4'].sum())
         tot_brand_pct = round(tot_brand_act / tot_brand_tgt * 100, 1) if tot_brand_tgt else 0
-        tot_brand_ct = float(df_out['CT DS (Brand)'].sum())
-        tot_brand_m = float(df_out['MTD (Brand)'].sum())
+        tot_brand_ct = round(float(df_out['CT DS.1'].sum()), 3)
+        tot_brand_m = round(float(df_out['MTD.1'].sum()), 3)
         tot_brand_m_pct = round(tot_brand_m / tot_brand_ct * 100, 1) if tot_brand_ct else 0
         
         total_row = pd.DataFrame([{
             'STT': '-',
             'Tên NV': 'TỔNG CỘNG',
-            'VIP MCH': tot_v_tgt, 'Đã Mua (VIP)': tot_v_act, '% MTD (VIP)': f"{tot_v_pct}%",
-            'KH Combo OFF': tot_off_tgt, 'Đã Mua (OFF)': tot_off_act, '% MTD (OFF)': f"{tot_off_pct}%",
-            'KH Combo ON': tot_on_tgt, 'Đã Mua (ON)': tot_on_act, '% MTD (ON)': f"{tot_on_pct}%",
-            'MBS Cat': tot_cat_tgt, 'Đã Mua (Cat)': tot_cat_act, '% MTD (Cat)': f"{tot_cat_pct}%",
-            'CT DS (Cat)': tot_cat_ct, 'MTD (Cat)': tot_cat_m, '% MTD DS (Cat)': f"{tot_cat_m_pct}%",
-            'MBS Brand': tot_brand_tgt, 'Đã Mua (Brand)': tot_brand_act, '% MTD (Brand)': tot_brand_pct,
-            'CT DS (Brand)': tot_brand_ct, 'MTD (Brand)': tot_brand_m, '% MTD DS (Brand)': f"{tot_brand_m_pct}%"
+            'VIP MCH': tot_v_tgt, 'Đã Mua': tot_v_act, '% MTD': f"{tot_v_pct}%",
+            'KH Combo OFF': tot_off_tgt, 'Đã Mua.1': tot_off_act, '% MTD.1': f"{tot_off_pct}%",
+            'KH Combo ON': tot_on_tgt, 'Đã Mua.2': tot_on_act, '% MTD.2': f"{tot_on_pct}%",
+            'MBS Cat': tot_cat_tgt, 'Đã Mua.3': tot_cat_act, '% MTD.3': f"{tot_cat_pct}%", 'CT DS': tot_cat_ct, 'MTD': tot_cat_m, '% MTD.4': f"{tot_cat_m_pct}%",
+            'MBS Brand': tot_brand_tgt, 'Đã Mua.4': tot_brand_act, '% MTD.5': f"{tot_brand_pct}%", 'CT DS.1': tot_brand_ct, 'MTD.1': tot_brand_m, '% MTD.6': f"{tot_brand_m_pct}%"
         }])
         df_out = pd.concat([df_out, total_row], ignore_index=True)
         
@@ -947,7 +943,7 @@ st.markdown(f"""
 <div class="main-header">
     <div class="logo">{logo_svg}</div>
     <div class="title-block">
-        <h1>SƯ ĐOÀN HCM4 - TRUNG ĐOÀN 10</h1>
+        <h1>SƯ ĐOÀN HCM4 - TRUNG ĐOÀN 10 - TEST</h1>
         <h2>TRACKING KPI ĐDKD - TEAM SS TRƯƠNG THANH TÂN</h2>
     </div>
 </div>
@@ -1107,23 +1103,55 @@ with tab_kpi:
         has_brand = 'MBS Brand' in selected_metrics
         
         cols_order = ['STT', 'Tên NV']
-        if has_vip: cols_order.extend(['VIP MCH', 'Đã Mua (VIP)', '% MTD (VIP)'])
-        if has_off: cols_order.extend(['KH Combo OFF', 'Đã Mua (OFF)', '% MTD (OFF)'])
-        if has_on: cols_order.extend(['KH Combo ON', 'Đã Mua (ON)', '% MTD (ON)'])
-        if has_cat: cols_order.extend(['MBS Cat', 'Đã Mua (Cat)', '% MTD (Cat)', 'CT DS (Cat)', 'MTD (Cat)', '% MTD DS (Cat)'])
-        if has_brand: cols_order.extend(['MBS Brand', 'Đã Mua (Brand)', '% MTD (Brand)', 'CT DS (Brand)', 'MTD (Brand)', '% MTD DS (Brand)'])
+        if has_vip: cols_order.extend(['VIP MCH', 'Đã Mua', '% MTD'])
+        if has_off: cols_order.extend(['KH Combo OFF', 'Đã Mua.1', '% MTD.1'])
+        if has_on: cols_order.extend(['KH Combo ON', 'Đã Mua.2', '% MTD.2'])
+        if has_cat: cols_order.extend(['MBS Cat', 'Đã Mua.3', '% MTD.3', 'CT DS', 'MTD', '% MTD.4'])
+        if has_brand: cols_order.extend(['MBS Brand', 'Đã Mua.4', '% MTD.5', 'CT DS.1', 'MTD.1', '% MTD.6'])
         
-        pct_cols_list = [c for c in cols_order if '%' in c]
-        styled_df_sum = highlight_pct_columns(df_summary[cols_order], pct_cols_list)
+        sub_df_sum = df_summary[cols_order].copy()
+        rename_map = {
+            'Đã Mua': 'Đã Mua', '% MTD': '% MTD',
+            'Đã Mua.1': 'Đã Mua', '% MTD.1': '% MTD',
+            'Đã Mua.2': 'Đã Mua', '% MTD.2': '% MTD',
+            'Đã Mua.3': 'Đã Mua', '% MTD.3': '% MTD',
+            'Đã Mua.4': 'Đã Mua', '% MTD.5': '% MTD',
+            'CT DS.1': 'CT DS', 'MTD.1': 'MTD', '% MTD.6': '% MTD'
+        }
+        
+        multi_columns = []
+        for c in cols_order:
+            if c in ['STT', 'Tên NV']:
+                multi_columns.append(('', c))
+            elif c in ['VIP MCH', 'Đã Mua', '% MTD']:
+                display_c = {'VIP MCH': 'VIP MCH', 'Đã Mua': 'Đã Mua', '% MTD': '% MTD'}[c]
+                multi_columns.append(('VIP MCH', display_c))
+            elif c in ['KH Combo OFF', 'Đã Mua.1', '% MTD.1']:
+                display_c = {'KH Combo OFF': 'KH Combo OFF', 'Đã Mua.1': 'Đã Mua', '% MTD.1': '% MTD'}[c]
+                multi_columns.append(('KH Combo OFF', display_c))
+            elif c in ['KH Combo ON', 'Đã Mua.2', '% MTD.2']:
+                display_c = {'KH Combo ON': 'KH Combo ON', 'Đã Mua.2': 'Đã Mua', '% MTD.2': '% MTD'}[c]
+                multi_columns.append(('KH Combo ON', display_c))
+            elif c in ['MBS Cat', 'Đã Mua.3', '% MTD.3', 'CT DS', 'MTD', '% MTD.4']:
+                display_c = {'MBS Cat': 'MBS Cat', 'Đã Mua.3': 'Đã Mua', '% MTD.3': '% MTD', 'CT DS': 'CT DS', 'MTD': 'MTD', '% MTD.4': '% MTD'}[c]
+                multi_columns.append(('MBS Cat (K VNĐ)', display_c))
+            elif c in ['MBS Brand', 'Đã Mua.4', '% MTD.5', 'CT DS.1', 'MTD.1', '% MTD.6']:
+                display_c = {'MBS Brand': 'MBS Brand', 'Đã Mua.4': 'Đã Mua', '% MTD.5': '% MTD', 'CT DS.1': 'CT DS', 'MTD.1': 'MTD', '% MTD.6': '% MTD'}[c]
+                multi_columns.append(('MBS Brand (K VNĐ)', display_c))
+                
+        sub_df_sum.columns = pd.MultiIndex.from_tuples(multi_columns)
+        pct_cols_keys = [col for col in sub_df_sum.columns if '% MTD' in col[1]]
+        
+        styled_df_sum = highlight_pct_columns(sub_df_sum, pct_cols_keys)
         st.dataframe(styled_df_sum, use_container_width=True, height=450, hide_index=True)
         
         st.markdown(f"""
         <div class="note-box">
             <b>NHẬN XÉT BÁO CÁO TỔNG HỢP:</b><br>
-            • Tổng số lượng cửa hàng VIP (VIP3, VIP5, VIPSI) toàn đội: <b>{tot_row_s['VIP MCH']:,} cửa hàng</b> (Đã mua: {tot_row_s['Đã Mua (VIP)']:,}).<br>
-            • Tổng KH tham gia Combo OFF: <b>{tot_row_s['KH Combo OFF']:,} CH</b> (Đã mua: {tot_row_s['Đã Mua (OFF)']:,}) | Combo ON: <b>{tot_row_s['KH Combo ON']:,} CH</b> (Đã mua: {tot_row_s['Đã Mua (ON)']:,}).<br>
+            • Tổng số lượng cửa hàng VIP (VIP3, VIP5, VIPSI) toàn đội: <b>{tot_row_s['VIP MCH']:,} cửa hàng</b> (Đã mua: {tot_row_s['Đã Mua']:,}).<br>
+            • Tổng KH tham gia Combo OFF: <b>{tot_row_s['KH Combo OFF']:,} CH</b> (Đã mua: {tot_row_s['Đã Mua.1']:,}) | Combo ON: <b>{tot_row_s['KH Combo ON']:,} CH</b> (Đã mua: {tot_row_s['Đã Mua.2']:,}).<br>
             • MBS Category (Outlet): <b>{tot_row_s['MBS Cat']:,} CH</b> | MBS Brand (Outlet): <b>{tot_row_s['MBS Brand']:,} CH</b>.<br>
-            • Đã khôi phục và đồng bộ đầy đủ toàn bộ dữ liệu MBS Cat & Brand chuẩn xác.
+            • Đã khôi phục chuẩn xác toàn bộ cấu trúc Multi-level Header và màu sắc trực quan như yêu cầu của bro.
         </div>
         """, unsafe_allow_html=True)
         
