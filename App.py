@@ -302,19 +302,22 @@ def filter_by_thu_multi(df, col_thu, f_thu_list):
         return df
     thu_s = df[col_thu].astype(str).str.strip()
     mask = pd.Series(False, index=df.index)
+    
+    mapping_rules = {
+        "2": ["2", "25"],
+        "3": ["3", "36"],
+        "4": ["4", "47"],
+        "5": ["5", "25"],
+        "6": ["6", "36"],
+        "7": ["7", "47"],
+        "25": ["25"],
+        "36": ["36"],
+        "47": ["47"]
+    }
+    
     for f_thu in f_thu_list:
-        if f_thu in ["2", "3", "4", "5", "6", "7"]:
-            mapping = {"2": ["2", "25"], "3": ["3", "36"], "4": ["4", "47"], "5": ["25", "5"], "6": ["36", "6"], "7": ["47", "7"]}
-            valid_set = mapping.get(f_thu, [f_thu])
-            mask = mask | thu_s.isin(valid_set)
-        elif f_thu == "25":
-            mask = mask | thu_s.isin(["2", "5", "25"])
-        elif f_thu == "36":
-            mask = mask | thu_s.isin(["3", "6", "36"])
-        elif f_thu == "47":
-            mask = mask | thu_s.isin(["4", "7", "47"])
-        else:
-            mask = mask | (thu_s == f_thu)
+        valid_set = mapping_rules.get(str(f_thu).strip(), [str(f_thu).strip()])
+        mask = mask | thu_s.isin(valid_set)
     return df[mask]
 
 def process_mcp_sales(df_rpt, df_mcp):
@@ -480,12 +483,8 @@ def build_report(df, report_date, targets, report_type, filter_nv=None, mcp_df=N
         off_t = df_today[(df_today['L1']=='Kênh Off Premise') & ~df_today['Sub Division'].astype(str).str.contains('Beer|Bia', case=False, na=False)]
         lines_t = off_t.groupby(['Mã NVBH','Mã đơn hàng'])['Mã sản phẩm'].nunique()
         ngay = lines_t[lines_t>=4].reset_index().groupby('Mã NVBH')['Mã đơn hàng'].nunique()
-        key, title = '4. PC BT (PC 4LINE - BEER)'
+        key, title = 'PC_BT', "4. PC BT (PC 4LINE - BEER)"
     elif report_type == 'PC_ON':
-        # PC Kênh ON (ASO ACTIVE KÊNH ON): 
-        # - Chỉ tiêu: Số CH Kênh On từng bạn đang có (từ mcp_df)
-        # - Thực hiện: Số đơn hàng Kênh ON phát sinh trong ngày
-        # - MTD: Số CH kênh ON đã có mua hàng trong Tháng (unique outlets, mua lại ko cộng dồn)
         on_mtd = df_mtd[df_mtd['L1'] == 'Kênh On Premise']
         mtd = on_mtd.groupby('Mã NVBH')['Mã CH'].nunique()
         
