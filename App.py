@@ -457,12 +457,13 @@ def process_brand_sales(df_rpt, df_brand):
     drop_cols = [c for c in ['_outlet_key', '_brand_key', 'Val1', 'Val2'] if c in df_out.columns]
     return df_out.drop(columns=drop_cols)
 
-def build_report(df, report_date, targets, report_type, filter_nv=None):
+def build_report(df, report_date, targets, report_type, filter_nv=None, mcp_df=None):
     df_mtd = df[df['date'] >= date(report_date.year, report_date.month, 1)].copy()
     if filter_nv and filter_nv != "Tất cả ĐDKD":
         df_mtd = df_mtd[df_mtd['Tên NVBH'] == filter_nv]
     sm_names = df_mtd.groupby('Mã NVBH')['Tên NVBH'].first().to_dict()
     all_sms = sorted(sm_names.keys())
+    
     if report_type == 'ASO_ALL':
         off = df_mtd[df_mtd['L1']=='Kênh Off Premise'].copy()
         mtd = off.groupby('Mã NVBH')['Mã CH'].nunique()
@@ -480,6 +481,29 @@ def build_report(df, report_date, targets, report_type, filter_nv=None):
         lines_t = off_t.groupby(['Mã NVBH','Mã đơn hàng'])['Mã sản phẩm'].nunique()
         ngay = lines_t[lines_t>=4].reset_index().groupby('Mã NVBH')['Mã đơn hàng'].nunique()
         key, title = 'PC_BT', "4. PC BT KÊNH OFF (ĐƠN ≥ 4 LINE - LOẠI BEER)"
+    elif report_type == 'PC_ON':
+        # PC Kênh ON: Chỉ tiêu = Số CH Kênh On từng bạn đang có (từ mcp_df), Thực hiện = Số Đơn hàng Kênh ON trong ngày, MTD = Số Đơn hàng Kênh ON cộng dồn tháng
+        on_mtd = df_mtd[df_mtd['L1'] == 'Kênh On Premise']
+        mtd = on_mtd.groupby('Mã NVBH')['Mã đơn hàng'].nunique()
+        
+        df_today = df[df['date'] == report_date]
+        if filter_nv and filter_nv != "Tất cả ĐDKD": df_today = df_today[df_today['Tên NVBH'] == filter_nv]
+        on_today = df_today[df_today['L1'] == 'Kênh On Premise']
+        ngay = on_today.groupby('Mã NVBH')['Mã đơn hàng'].nunique()
+        
+        # Target từ mcp_df (đếm số CH Kênh On Premise của mỗi SM)
+        on_targets = {}
+        if mcp_df is not None and not mcp_df.empty:
+            c_nv_mcp = find_col(mcp_df, ['SM Code', 'Mã NVBH', 'SM code', 'Tên NVBH'])
+            c_l1 = find_col(mcp_df, ['L1', 'Channel'])
+            c_ma = find_col(mcp_df, ['Outlet_code', 'Outlet Code', 'Mã CH'])
+            if c_nv_mcp and c_l1 and c_ma:
+                on_mcp = mcp_df[mcp_df[c_l1].astype(str).str.contains('On', case=False, na=False)].copy()
+                # Map SM code to SM name or vice versa
+                # Let's group by SM code
+                grouped = on_mcp.groupby(c_nv_mcp)[c_ma].nunique().to_dict()
+                on_targets = grouped
+        title = "4b. PC KÊNH ON"
     elif report_type == 'ASO_TEA':
         on = df_mtd[df_mtd['L1']=='Kênh On Premise']
         tea = on[on['Tên SP lower'].str.contains('tea|trà|ô long|olong|búp non', na=False)].copy()
@@ -508,9 +532,13 @@ def build_report(df, report_date, targets, report_type, filter_nv=None):
         key, title = 'ASO_CHANTE', "1. ASO FOCUS TOTAL NHÃN CHANTÉ"
     else:
         return pd.DataFrame(), 0, ""
+
     results = []
     for sm in all_sms:
-        tgt = targets.get(sm, {}).get(key, 0)
+        if report_type == 'PC_ON':
+            tgt = int(on_targets.get(sm, 0))
+        else:
+            tgt = targets.get(sm, {}).get(key, 0)
         m = int(mtd.get(sm, 0))
         n = int(ngay.get(sm, 0))
         pct = round(m/tgt*100, 1) if tgt else 0
@@ -1083,11 +1111,9 @@ with st.spinner("Đang tải dữ liệu..."):
 
 nv_list = sorted(df['Tên NVBH'].dropna().unique().tolist())
 
-# Tự động tính ngày T - 1 theo múi giờ GMT+7 chuẩn không cần pytz
 vn_time = dt.datetime.utcnow() + dt.timedelta(hours=7)
 default_date_t_minus_1 = (vn_time - timedelta(days=1)).date()
 
-# ====================== TÍNH TOÁN TIMEGONE (GMT+7 & LỄ 1-2/9) ======================
 def get_timegone_stats(target_date):
     year = target_date.year
     month = target_date.month
@@ -1103,7 +1129,6 @@ def get_timegone_stats(target_date):
     curr = first_day
     while curr <= last_day:
         is_sunday = (curr.weekday() == 6)
-        # Trừ ngày 1 và ngày 2 tháng 9 nghỉ lễ Quốc Khánh
         is_holiday = (month == 9 and curr.day in [1, 2])
         
         if not is_sunday and not is_holiday:
@@ -1118,7 +1143,6 @@ def get_timegone_stats(target_date):
 
 tot_days, elapsed_days, remain_days, pct_tg = get_timegone_stats(default_date_t_minus_1)
 
-# Hiển thị bảng Timegone LÊN TRÊN CÙNG TRƯỚC BỘ LỌC (Responsive scale tối ưu mobile - Đã ẩn nội dung trong ngoặc)
 st.markdown(f"""
 <div class="timegone-container" style="background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; margin: 5px 0 12px 0; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
     <div class="timegone-title" style="font-weight: 800; color: #1a365d; font-size: 12.5px; margin-bottom: 6px;">⏳ TIẾN ĐỘ THỜI GIAN THÁNG {default_date_t_minus_1.strftime('%m/%Y')}</div>
@@ -1146,6 +1170,7 @@ with f3:
         "2. ASO FOCUS TRẬN VÀNG - OMACHI TRỘN": "OMACHI",
         "3. ASO TEA KÊNH ON PREMISE": "ASO_TEA",
         "4. PC BT KÊNH OFF (ĐƠN ≥ 4 LINE - LOẠI BEER)": "PC_BT",
+        "4b. PC KÊNH ON": "PC_ON",
         "5. ASO ALL KÊNH OFF": "ASO_ALL",
         "6. BÁO CÁO ĐƠN HÀNG COMBO": "COMBO",
         "7. BÁO CÁO TỔNG HỢP THEO NHÂN VIÊN": "SUMMARY",
@@ -1265,7 +1290,7 @@ with tab_kpi:
         """, unsafe_allow_html=True)
 
     elif selected_kpi != "COMBO":
-        df_r, team_tgt, title = build_report(df, report_date, targets, selected_kpi, filter_nv)
+        df_r, team_tgt, title = build_report(df, report_date, targets, selected_kpi, filter_nv, mcp_df=mcp)
         total_row = df_r.iloc[-1]
         total_mtd = int(total_row['MTD'])
         total_ngay = int(total_row['Thực Hiện Ngày'])
