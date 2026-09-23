@@ -482,16 +482,18 @@ def build_report(df, report_date, targets, report_type, filter_nv=None, mcp_df=N
         ngay = lines_t[lines_t>=4].reset_index().groupby('Mã NVBH')['Mã đơn hàng'].nunique()
         key, title = 'PC_BT', "4. PC BT KÊNH OFF (ĐƠN ≥ 4 LINE - LOẠI BEER)"
     elif report_type == 'PC_ON':
-        # PC Kênh ON: Chỉ tiêu = Số CH Kênh On từng bạn đang có (từ mcp_df), Thực hiện = Số Đơn hàng Kênh ON trong ngày, MTD = Số Đơn hàng Kênh ON cộng dồn tháng
+        # PC Kênh ON: 
+        # - Chỉ tiêu: Số CH Kênh On từng bạn đang có (từ mcp_df)
+        # - Thực hiện: Số đơn hàng Kênh ON phát sinh trong ngày
+        # - MTD: Số CH kênh ON đã có mua hàng trong Tháng (unique outlets, mua lại ko cộng dồn)
         on_mtd = df_mtd[df_mtd['L1'] == 'Kênh On Premise']
-        mtd = on_mtd.groupby('Mã NVBH')['Mã đơn hàng'].nunique()
+        mtd = on_mtd.groupby('Mã NVBH')['Mã CH'].nunique()
         
         df_today = df[df['date'] == report_date]
         if filter_nv and filter_nv != "Tất cả ĐDKD": df_today = df_today[df_today['Tên NVBH'] == filter_nv]
         on_today = df_today[df_today['L1'] == 'Kênh On Premise']
         ngay = on_today.groupby('Mã NVBH')['Mã đơn hàng'].nunique()
         
-        # Target từ mcp_df (đếm số CH Kênh On Premise của mỗi SM)
         on_targets = {}
         if mcp_df is not None and not mcp_df.empty:
             c_nv_mcp = find_col(mcp_df, ['SM Code', 'Mã NVBH', 'SM code', 'Tên NVBH'])
@@ -499,8 +501,6 @@ def build_report(df, report_date, targets, report_type, filter_nv=None, mcp_df=N
             c_ma = find_col(mcp_df, ['Outlet_code', 'Outlet Code', 'Mã CH'])
             if c_nv_mcp and c_l1 and c_ma:
                 on_mcp = mcp_df[mcp_df[c_l1].astype(str).str.contains('On', case=False, na=False)].copy()
-                # Map SM code to SM name or vice versa
-                # Let's group by SM code
                 grouped = on_mcp.groupby(c_nv_mcp)[c_ma].nunique().to_dict()
                 on_targets = grouped
         title = "4b. PC KÊNH ON"
@@ -961,7 +961,7 @@ def build_summary_report(df, report_date, df_combo_off_raw, df_combo_on_raw, cat
             'KH Combo ON': tot_on_tgt, 'Đã Mua (ON)': tot_on_act, '% MTD (ON)': f"{tot_on_pct}%",
             'MBS Cat': tot_cat_tgt, 'Đã Mua (Cat)': tot_cat_act, '% MTD (Cat)': tot_cat_pct,
             'CT DS (Cat)': tot_cat_ct, 'MTD (Cat)': tot_cat_m, '% MTD DS (Cat)': f"{tot_cat_m_pct}%",
-            'MBS Brand': tot_brand_tgt, 'Đã Mua (Brand)': tot_brand_act, '% MTD (Brand)': f"{tot_brand_pct}%",
+            'MBS Brand': tot_brand_tgt, 'Đã Mua (Brand)': tot_brand_act, '% MTD (Brand)': tot_brand_pct,
             'CT DS (Brand)': tot_brand_ct, 'MTD (Brand)': tot_brand_m, '% MTD DS (Brand)': f"{tot_brand_m_pct}%"
         }])
         df_out = pd.concat([df_out, total_row], ignore_index=True)
