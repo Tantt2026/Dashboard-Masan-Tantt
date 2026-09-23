@@ -480,12 +480,8 @@ def build_report(df, report_date, targets, report_type, filter_nv=None, mcp_df=N
         off_t = df_today[(df_today['L1']=='Kênh Off Premise') & ~df_today['Sub Division'].astype(str).str.contains('Beer|Bia', case=False, na=False)]
         lines_t = off_t.groupby(['Mã NVBH','Mã đơn hàng'])['Mã sản phẩm'].nunique()
         ngay = lines_t[lines_t>=4].reset_index().groupby('Mã NVBH')['Mã đơn hàng'].nunique()
-        key, title = '4. PC BT (PC 4LINE - BEER)'
+        key, title = 'PC_BT', "4. PC BT (PC 4LINE - BEER)"
     elif report_type == 'PC_ON':
-        # PC Kênh ON (ASO ACTIVE KÊNH ON): 
-        # - Chỉ tiêu: Số CH Kênh On từng bạn đang có (từ mcp_df)
-        # - Thực hiện: Số đơn hàng Kênh ON phát sinh trong ngày
-        # - MTD: Số CH kênh ON đã có mua hàng trong Tháng (unique outlets, mua lại ko cộng dồn)
         on_mtd = df_mtd[df_mtd['L1'] == 'Kênh On Premise']
         mtd = on_mtd.groupby('Mã NVBH')['Mã CH'].nunique()
         
@@ -968,14 +964,14 @@ def build_summary_report(df, report_date, df_combo_off_raw, df_combo_on_raw, cat
         
     return df_out
 
-def render_summary_html_table(df, selected_metrics):
+def render_summary_html_table(df, selected_metrics, height_style=""):
     has_vip = 'VIP MCH' in selected_metrics
     has_off = 'KH Combo OFF' in selected_metrics
     has_on = 'KH Combo ON' in selected_metrics
     has_cat = 'MBS Cat' in selected_metrics
     has_brand = 'MBS Brand' in selected_metrics
     
-    html = ['<div style="overflow-x: auto; -webkit-overflow-scrolling: touch;"><table class="custom-kpi-table">']
+    html = [f'<div style="overflow-x: auto; -webkit-overflow-scrolling: touch; {height_style}"><table class="custom-kpi-table">']
     
     html.append('<thead>')
     html.append('<tr>')
@@ -1045,8 +1041,8 @@ def render_summary_html_table(df, selected_metrics):
     html.append('</table></div>')
     return "".join(html)
 
-def render_html_table(df):
-    html = ['<div style="overflow-x: auto; -webkit-overflow-scrolling: touch;"><table class="custom-kpi-table">']
+def render_html_table(df, height_style=""):
+    html = [f'<div style="overflow-x: auto; -webkit-overflow-scrolling: touch; {height_style}"><table class="custom-kpi-table">']
     html.append('<thead><tr>')
     for col in df.columns:
         html.append(f'<th>{col}</th>')
@@ -1085,7 +1081,7 @@ st.markdown(f"""
 <div class="main-header">
     <div class="logo">{logo_svg}</div>
     <div class="title-block">
-        <h1>SƯ ĐOÀN HCM4 - TRUNG ĐOÀN 10 - TEST</h1>
+        <h1>SƯ ĐOÀN HCM4 - TRUNG ĐOÀN 10</h1>
         <h2>TRACKING KPI ĐDKD - TEAM SS TRƯƠNG THANH TÂN</h2>
     </div>
 </div>
@@ -1195,6 +1191,22 @@ tab_kpi, tab_mcp, tab_cat, tab_brand, tab_dskh_off, tab_dskh_on = st.tabs([
 
 # ----- TAB KPI -----
 with tab_kpi:
+    col_zoom_btn, col_dummy = st.columns([1.5, 5])
+    if "is_kpi_fullscreen" not in st.session_state:
+        st.session_state.is_kpi_fullscreen = False
+        
+    with col_zoom_btn:
+        if st.session_state.is_kpi_fullscreen:
+            if st.button("🗜️ Thu nhỏ bảng lại"):
+                st.session_state.is_kpi_fullscreen = False
+                st.rerun()
+        else:
+            if st.button("🔲 Phóng to Full Size"):
+                st.session_state.is_kpi_fullscreen = True
+                st.rerun()
+
+    table_height_style = "" if st.session_state.is_kpi_fullscreen else "max-height: 480px; overflow-y: auto;"
+
     if selected_kpi == "SUMMARY":
         saved_sum_thu = st.query_params.get("sum_thu", "")
         default_sum_thu_list = [x.strip() for x in saved_sum_thu.split(",") if x.strip()] if saved_sum_thu else []
@@ -1238,7 +1250,7 @@ with tab_kpi:
         with c3: render_metric_card("Tổng KH Combo ON", f"{tot_row_s['KH Combo ON']:,}")
         with c4: render_metric_card("Tổng MBS Cat / Brand", f"{tot_row_s['MBS Cat']:,} / {tot_row_s['MBS Brand']:,}")
         
-        st.markdown(render_summary_html_table(df_summary, selected_metrics), unsafe_allow_html=True)
+        st.markdown(render_summary_html_table(df_summary, selected_metrics, height_style=table_height_style), unsafe_allow_html=True)
         st.markdown(f"""
         <div class="note-box">
             <b>NHẬN XÉT BÁO CÁO TỔNG HỢP:</b><br>
@@ -1269,7 +1281,7 @@ with tab_kpi:
         for col in ['Chỉ Tiêu Doanh Số', 'Thực Hiện Ngày', 'Doanh Số MTD']:
             df_display[col] = df_display[col].apply(lambda x: f"{x:,.0f}".replace(",", ".") if isinstance(x, (int, float)) and x > 0 else ("0" if x == 0 else x))
             
-        st.markdown(render_html_table(df_display), unsafe_allow_html=True)
+        st.markdown(render_html_table(df_display, height_style=table_height_style), unsafe_allow_html=True)
         
         df_eval = df_r.iloc[:-1].copy()
         df_eval['_pct_val'] = df_eval['% MTD'].str.replace('%','').astype(float)
@@ -1302,7 +1314,7 @@ with tab_kpi:
         with c2: render_metric_card("📈 MTD", f"{total_mtd:,}")
         with c3: render_metric_card("📊 % MTD", pct_team)
         with c4: render_metric_card("🆕 Ngày", f"+{total_ngay}")
-        st.markdown(render_html_table(df_r), unsafe_allow_html=True)
+        st.markdown(render_html_table(df_r, height_style=table_height_style), unsafe_allow_html=True)
         df_eval = df_r.iloc[:-1].copy()
         df_eval['_pct_val'] = df_eval['% MTD'].str.replace('%','').astype(float)
         
@@ -1340,7 +1352,7 @@ with tab_kpi:
         with c3: render_metric_card("Phát sinh Ngày (OFF)", f"+{ngay_off}")
         with c4: render_metric_card("Phát sinh Ngày (ON)", f"+{ngay_on}")
         
-        st.markdown(render_html_table(df_combo), unsafe_allow_html=True)
+        st.markdown(render_html_table(df_combo, height_style=table_height_style), unsafe_allow_html=True)
         st.markdown(f"""
         <div class="note-box">
             <b>NHẬN XÉT BÁO CÁO COMBO LŨY KẾ (MATRIX OFF/ON):</b><br>
