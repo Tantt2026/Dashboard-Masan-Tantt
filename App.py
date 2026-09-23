@@ -248,17 +248,25 @@ def get_turnover_targets():
         return targets
     except: return {}
 
+def color_pct_styler(val):
+    try:
+        v = float(str(val).replace('%','').strip())
+        if v >= 70: return 'background-color: #c6f6d5; color:#22543d; font-weight:600;'
+        elif v >= 50: return 'background-color: #fefcbf; color:#744210; font-weight:600;'
+        else: return 'background-color: #fed7d7; color:#742a2a; font-weight:600;'
+    except: return ''
+
+def highlight_pct_columns(df, pct_cols):
+    def apply_style(s):
+        if s.name in pct_cols:
+            return [color_pct_styler(v) for v in s]
+        return ['' for _ in s]
+    return df.style.apply(apply_style, axis=0)
+
 def format_number_vn(x):
     try:
         if pd.isnull(x) or str(x).lower() in ["none","nan",""]: return ""
         return f"{float(x):,.0f}".replace(",", ".")
-    except: return x
-
-def format_scaled_thousand(x):
-    try:
-        if pd.isnull(x) or str(x).lower() in ["none","nan",""]: return ""
-        val = float(x) / 1000.0
-        return f"{val:,.0f}".replace(",", ".")
     except: return x
 
 def find_col(df, candidates):
@@ -925,7 +933,7 @@ def build_summary_report(df, report_date, df_combo_off_raw, df_combo_on_raw, cat
             'VIP MCH': tot_v_tgt, 'Đã Mua (VIP)': tot_v_act, '% MTD (VIP)': f"{tot_v_pct}%",
             'KH Combo OFF': tot_off_tgt, 'Đã Mua (OFF)': tot_off_act, '% MTD (OFF)': f"{tot_off_pct}%",
             'KH Combo ON': tot_on_tgt, 'Đã Mua (ON)': tot_on_act, '% MTD (ON)': f"{tot_on_pct}%",
-            'MBS Cat': tot_cat_tgt, 'Đã Mua (Cat)': tot_cat_act, '% MTD (Cat)': tot_cat_pct,
+            'MBS Cat': tot_cat_tgt, 'Đã Mua (Cat)': tot_cat_act, '% MTD (Cat)': f"{tot_cat_pct}%",
             'CT DS (Cat)': tot_cat_ct, 'MTD (Cat)': tot_cat_m, '% MTD DS (Cat)': f"{tot_cat_m_pct}%",
             'MBS Brand': tot_brand_tgt, 'Đã Mua (Brand)': tot_brand_act, '% MTD (Brand)': tot_brand_pct,
             'CT DS (Brand)': tot_brand_ct, 'MTD (Brand)': tot_brand_m, '% MTD DS (Brand)': f"{tot_brand_m_pct}%"
@@ -939,7 +947,7 @@ st.markdown(f"""
 <div class="main-header">
     <div class="logo">{logo_svg}</div>
     <div class="title-block">
-        <h1>SƯ ĐOÀN HCM4 - TRUNG ĐOÀN 10 - TEST</h1>
+        <h1>SƯ ĐOÀN HCM4 - TRUNG ĐOÀN 10</h1>
         <h2>TRACKING KPI ĐDKD - TEAM SS TRƯƠNG THANH TÂN</h2>
     </div>
 </div>
@@ -1105,7 +1113,9 @@ with tab_kpi:
         if has_cat: cols_order.extend(['MBS Cat', 'Đã Mua (Cat)', '% MTD (Cat)', 'CT DS (Cat)', 'MTD (Cat)', '% MTD DS (Cat)'])
         if has_brand: cols_order.extend(['MBS Brand', 'Đã Mua (Brand)', '% MTD (Brand)', 'CT DS (Brand)', 'MTD (Brand)', '% MTD DS (Brand)'])
         
-        st.dataframe(df_summary[cols_order], use_container_width=True, height=450, hide_index=True)
+        pct_cols_list = [c for c in cols_order if '%' in c]
+        styled_df_sum = highlight_pct_columns(df_summary[cols_order], pct_cols_list)
+        st.dataframe(styled_df_sum, use_container_width=True, height=450, hide_index=True)
         
         st.markdown(f"""
         <div class="note-box">
@@ -1133,7 +1143,8 @@ with tab_kpi:
         with c3: render_metric_card("📊 % MTD", pct_team)
         with c4: render_metric_card("🆕 Thực Hiện Ngày", f"{total_today:,.0f}".replace(",", "."))
         
-        st.dataframe(df_r, use_container_width=True, height=450, hide_index=True)
+        styled_df_turnover = highlight_pct_columns(df_r, ['% MTD'])
+        st.dataframe(styled_df_turnover, use_container_width=True, height=450, hide_index=True)
         
         df_eval = df_r.iloc[:-1].copy()
         df_eval['_pct_val'] = df_eval['% MTD'].str.replace('%','').astype(float)
@@ -1167,7 +1178,8 @@ with tab_kpi:
         with c3: render_metric_card("📊 % MTD", pct_team)
         with c4: render_metric_card("🆕 Ngày", f"+{total_ngay}")
         
-        st.dataframe(df_r, use_container_width=True, height=450, hide_index=True)
+        styled_df_kpi = highlight_pct_columns(df_r, ['% MTD'])
+        st.dataframe(styled_df_kpi, use_container_width=True, height=450, hide_index=True)
         
         df_eval = df_r.iloc[:-1].copy()
         df_eval['_pct_val'] = df_eval['% MTD'].str.replace('%','').astype(float)
@@ -1206,7 +1218,8 @@ with tab_kpi:
         with c3: render_metric_card("Phát sinh Ngày (OFF)", f"+{ngay_off}")
         with c4: render_metric_card("Phát sinh Ngày (ON)", f"+{ngay_on}")
         
-        st.dataframe(df_combo, use_container_width=True, height=450, hide_index=True)
+        styled_df_combo = highlight_pct_columns(df_combo, ['% MTD (OFF)', '% MTD (ON)'])
+        st.dataframe(styled_df_combo, use_container_width=True, height=450, hide_index=True)
         
         st.markdown(f"""
         <div class="note-box">
